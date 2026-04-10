@@ -87,21 +87,28 @@ enum DownloadFormat: String, Codable, CaseIterable, Identifiable {
     }
 
     var ytdlpArgs: [String] {
+        ytdlpArgVariants.first ?? []
+    }
+
+    var ytdlpArgVariants: [[String]] {
         switch self {
         case .mp3:
-            return ["-x", "--audio-format", "mp3", "--audio-quality", "0"]
+            return [["-x", "--audio-format", "mp3", "--audio-quality", "0"]]
         case .bestAudio:
-            return ["-x", "--audio-format", "m4a", "--audio-quality", "0"]
+            return [["-x", "--audio-format", "m4a", "--audio-quality", "0"]]
         case .video720p:
-            return ["-f", "bestvideo[height<=720]+bestaudio/bestvideo[height<=720]+bestaudio/best[height<=720]/bestvideo+bestaudio/best", "--merge-output-format", "mp4"]
+            return videoArgVariants(maxHeight: 720)
         case .video1080p:
-            return ["-f", "bestvideo[height<=1080]+bestaudio/best[height<=1080]/bestvideo+bestaudio/best", "--merge-output-format", "mp4"]
+            return videoArgVariants(maxHeight: 1080)
         case .video1440p:
-            return ["-f", "bestvideo[height<=1440]+bestaudio/best[height<=1440]/bestvideo+bestaudio/best", "--merge-output-format", "mp4"]
+            return videoArgVariants(maxHeight: 1440)
         case .video4k:
-            return ["-f", "bestvideo[height<=2160]+bestaudio/best[height<=2160]/bestvideo+bestaudio/best", "--merge-output-format", "mp4"]
+            return videoArgVariants(maxHeight: 2160)
         case .bestVideo:
-            return ["-f", "bestvideo+bestaudio/best", "--merge-output-format", "mp4"]
+            return [
+                ["-f", "bestvideo+bestaudio", "--merge-output-format", "mp4"],
+                ["-f", "best", "--merge-output-format", "mp4"]
+            ]
         }
     }
 
@@ -110,6 +117,15 @@ enum DownloadFormat: String, Codable, CaseIterable, Identifiable {
         case .mp3, .bestAudio: return "music.note"
         default: return "film"
         }
+    }
+
+    private func videoArgVariants(maxHeight: Int) -> [[String]] {
+        [
+            ["-f", "bestvideo[height<=\(maxHeight)]+bestaudio", "--merge-output-format", "mp4"],
+            ["-f", "best[height<=\(maxHeight)]", "--merge-output-format", "mp4"],
+            ["-f", "bestvideo+bestaudio", "--merge-output-format", "mp4"],
+            ["-f", "best", "--merge-output-format", "mp4"]
+        ]
     }
 }
 

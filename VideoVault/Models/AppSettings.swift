@@ -84,7 +84,7 @@ class AppSettings: ObservableObject {
         self.embedThumbnail = defaults.object(forKey: "embedThumbnail") as? Bool ?? true
         self.embedMetadata = defaults.object(forKey: "embedMetadata") as? Bool ?? true
         self.organizeBySource = defaults.object(forKey: "organizeBySource") as? Bool ?? true
-        self.useBrowserCookies = defaults.object(forKey: "useBrowserCookies") as? Bool ?? true
+        self.useBrowserCookies = defaults.object(forKey: "useBrowserCookies") as? Bool ?? false
         self.cookiesBrowser = defaults.string(forKey: "cookiesBrowser") ?? "safari"
         self.ffmpegPath = defaults.string(forKey: "ffmpegPath") ?? "/opt/homebrew/bin/ffmpeg"
     }

@@ -14,6 +14,11 @@ class YTDLPService {
 
     private init() {}
 
+    private struct DownloadAttempt {
+        let formatArgs: [String]
+        let includeCookies: Bool
+    }
+
     // MARK: - yt-dlp Availability
 
     func isYTDLPInstalled() -> Bool {
@@ -89,12 +94,12 @@ class YTDLPService {
 
     // MARK: - Common Args
 
-    private var commonArgs: [String] {
+    private func commonArgs(includeCookies: Bool) -> [String] {
         var args: [String] = [
             "--no-warnings",
             "--no-check-certificates",
         ]
-        if settings.useBrowserCookies, !settings.cookiesBrowser.isEmpty {
+        if includeCookies, settings.useBrowserCookies, !settings.cookiesBrowser.isEmpty {
             args += ["--cookies-from-browser", settings.cookiesBrowser]
         }
         // Tell yt-dlp where ffmpeg is so it can merge streams and convert audio
@@ -129,12 +134,23 @@ class YTDLPService {
     }
 
     private func _fetchVideoInfo(url: String) async throws -> VideoInfo {
+        do {
+            return try await fetchVideoInfo(url: url, includeCookies: settings.useBrowserCookies)
+        } catch let error as YTDLPError {
+            if settings.useBrowserCookies, shouldRetryWithoutCookies(error: error) {
+                return try await fetchVideoInfo(url: url, includeCookies: false)
+            }
+            throw error
+        }
+    }
+
+    private func fetchVideoInfo(url: String, includeCookies: Bool) async throws -> VideoInfo {
         let process = Process()
         let pipe = Pipe()
         let errorPipe = Pipe()
 
         var arguments = ["--dump-json", "--no-download"]
-        arguments += commonArgs
+        arguments += commonArgs(includeCookies: includeCookies)
         arguments += [url]
 
         process.executableURL = URL(fileURLWithPath: settings.ytdlpPath)
@@ -212,20 +228,56 @@ class YTDLPService {
             options: [.skipsHiddenFiles]
         ))?.map { $0.lastPathComponent } ?? [])
 
+        let attempts = downloadAttempts(for: format)
+        var lastError: Error = YTDLPError.downloadFailed("Download failed")
+
+        for (index, attempt) in attempts.enumerated() {
+            do {
+                return try await runDownloadAttempt(
+                    url: url,
+                    format: format,
+                    outputDirectory: outputDirectory,
+                    existingFiles: existingFiles,
+                    attempt: attempt,
+                    progressHandler: progressHandler
+                )
+            } catch let error as YTDLPError {
+                lastError = error
+
+                let hasMoreAttempts = index < attempts.count - 1
+                guard hasMoreAttempts, shouldRetryDownload(error: error) else {
+                    throw error
+                }
+            } catch {
+                lastError = error
+                throw error
+            }
+        }
+
+        throw lastError
+    }
+
+    private func runDownloadAttempt(
+        url: String,
+        format: DownloadFormat,
+        outputDirectory: URL,
+        existingFiles: Set<String>,
+        attempt: DownloadAttempt,
+        progressHandler: @escaping (Double, String) -> Void
+    ) async throws -> URL {
         let process = Process()
         let pipe = Pipe()
         let errorPipe = Pipe()
 
-        // Use yt-dlp's --print to get the final filename after download
         let outputTemplate = outputDirectory.path + "/%(title)s.%(ext)s"
 
-        var arguments = format.ytdlpArgs
+        var arguments = attempt.formatArgs
         arguments += [
             "-o", outputTemplate,
             "--newline",
-            "--print", "after_move:filepath",  // prints final path after all post-processing
+            "--print", "after_move:filepath",
         ]
-        arguments += commonArgs
+        arguments += commonArgs(includeCookies: attempt.includeCookies)
 
         if settings.embedThumbnail && !format.isAudioOnly {
             arguments += ["--embed-thumbnail"]
@@ -363,6 +415,52 @@ class YTDLPService {
 
             do { try process.run() }
             catch { safeResume(with: .failure(YTDLPError.launchFailed)) }
+        }
+    }
+
+    private func downloadAttempts(for format: DownloadFormat) -> [DownloadAttempt] {
+        let cookieModes = settings.useBrowserCookies && !settings.cookiesBrowser.isEmpty
+            ? [true, false]
+            : [false]
+
+        var attempts: [DownloadAttempt] = []
+        var seenKeys = Set<String>()
+
+        for includeCookies in cookieModes {
+            for formatArgs in format.ytdlpArgVariants {
+                let key = "\(includeCookies)|\(formatArgs.joined(separator: " "))"
+                guard seenKeys.insert(key).inserted else { continue }
+                attempts.append(DownloadAttempt(formatArgs: formatArgs, includeCookies: includeCookies))
+            }
+        }
+
+        return attempts
+    }
+
+    private func shouldRetryDownload(error: YTDLPError) -> Bool {
+        switch error {
+        case .downloadFailed(let message):
+            let normalized = message.lowercased()
+            return normalized.contains("requested format is not available")
+                || normalized.contains("operation not permitted")
+                || normalized.contains("cookies")
+                || normalized.contains("browser")
+                || normalized.contains("failed to decrypt")
+        default:
+            return false
+        }
+    }
+
+    private func shouldRetryWithoutCookies(error: YTDLPError) -> Bool {
+        switch error {
+        case .fetchFailed(let message), .downloadFailed(let message):
+            let normalized = message.lowercased()
+            return normalized.contains("operation not permitted")
+                || normalized.contains("cookies")
+                || normalized.contains("browser")
+                || normalized.contains("failed to decrypt")
+        default:
+            return false
         }
     }
 
