@@ -1,0 +1,23 @@
+# Xcode
+build/
+DerivedData/
+*.xcuserdata
+*.xccheckout
+*.moved-aside
+*.hmap
+*.ipa
+*.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+
+# User-specific
+xcuserdata/
+*.xcuserdatad
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Temporary
+*.swp
+*~
