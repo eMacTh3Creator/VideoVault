@@ -161,15 +161,23 @@ class YTDLPService {
         return try await withCheckedThrowingContinuation { continuation in
             var resumed = false
             let lock = NSLock()
+            var timeoutTask: DispatchWorkItem?
 
             func safeResume(with result: Result<VideoInfo, Error>) {
                 lock.lock(); defer { lock.unlock() }
                 guard !resumed else { return }
                 resumed = true
+                timeoutTask?.cancel()
                 continuation.resume(with: result)
             }
 
-            process.terminationHandler = { _ in
+            timeoutTask = DispatchWorkItem {
+                guard process.isRunning else { return }
+                process.terminate()
+                safeResume(with: .failure(YTDLPError.fetchFailed("Timed out")))
+            }
+
+            func finish() {
                 let data = pipe.fileHandleForReading.readDataToEndOfFile()
                 let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
 
@@ -203,7 +211,16 @@ class YTDLPService {
                 )))
             }
 
-            do { try process.run() }
+            do {
+                try process.run()
+                if let timeoutTask {
+                    DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 15, execute: timeoutTask)
+                }
+                DispatchQueue.global(qos: .utility).async {
+                    process.waitUntilExit()
+                    finish()
+                }
+            }
             catch { safeResume(with: .failure(YTDLPError.launchFailed)) }
         }
     }
@@ -363,10 +380,10 @@ class YTDLPService {
                 }
             }
 
-            process.terminationHandler = { [weak self] proc in
+            func finish() {
                 pipe.fileHandleForReading.readabilityHandler = nil
 
-                if proc.terminationStatus == 0 {
+                if process.terminationStatus == 0 {
                     // Strategy 1: Use path from --print after_move:filepath
                     lock.lock()
                     let paths = capturedPaths
@@ -380,20 +397,20 @@ class YTDLPService {
                     }
 
                     // Strategy 2: Find new files that weren't there before
-                    if let newFile = self?.findNewFile(in: outputDirectory, excluding: existingFiles) {
+                    if let newFile = self.findNewFile(in: outputDirectory, excluding: existingFiles) {
                         safeResume(with: .success(newFile))
                         return
                     }
 
                     // Strategy 3: Newest file in directory
-                    if let newest = self?.newestFile(in: outputDirectory) {
+                    if let newest = self.newestFile(in: outputDirectory) {
                         safeResume(with: .success(newest))
                         return
                     }
 
                     // Strategy 4: Check parent directory too
                     let parentDir = outputDirectory.deletingLastPathComponent()
-                    if let newInParent = self?.findNewFile(in: parentDir, excluding: []) {
+                    if let newInParent = self.findNewFile(in: parentDir, excluding: []) {
                         safeResume(with: .success(newInParent))
                         return
                     }
@@ -413,7 +430,13 @@ class YTDLPService {
                 }
             }
 
-            do { try process.run() }
+            do {
+                try process.run()
+                DispatchQueue.global(qos: .utility).async {
+                    process.waitUntilExit()
+                    finish()
+                }
+            }
             catch { safeResume(with: .failure(YTDLPError.launchFailed)) }
         }
     }
