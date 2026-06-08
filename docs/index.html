@@ -1,0 +1,870 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="VideoVault is a native macOS download manager for YouTube, Vimeo, TikTok, Reddit, Twitter/X, and 1000+ other sites powered by yt-dlp.">
+  <meta name="theme-color" content="#160a0f">
+  <meta property="og:title" content="VideoVault">
+  <meta property="og:description" content="A native macOS app for downloading videos from YouTube, Vimeo, TikTok, Reddit, Twitter/X, and 1000+ other sites.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="assets/icon-512.png">
+  <title>VideoVault - Native macOS video downloader</title>
+  <link rel="icon" href="assets/icon-256.png">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #160a0f;
+      --bg-2: #241117;
+      --panel: rgba(38, 21, 29, 0.84);
+      --panel-2: rgba(56, 29, 39, 0.7);
+      --line: rgba(255, 255, 255, 0.08);
+      --line-strong: rgba(255, 93, 106, 0.28);
+      --text: #fff4f5;
+      --muted: #d7b9c1;
+      --soft: #b08995;
+      --accent: #ff5d6a;
+      --accent-2: #ff8e68;
+      --accent-3: #ffd2a8;
+      --green: #7ce0a1;
+      --shadow: 0 28px 100px rgba(0, 0, 0, 0.42);
+      --radius: 28px;
+      --sans: "Avenir Next", "Segoe UI", "Trebuchet MS", sans-serif;
+      --serif: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+      --mono: "SFMono-Regular", "Consolas", "Menlo", monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      color: var(--text);
+      font-family: var(--sans);
+      background:
+        radial-gradient(circle at 14% 10%, rgba(255, 93, 106, 0.22), transparent 27rem),
+        radial-gradient(circle at 88% 12%, rgba(255, 142, 104, 0.18), transparent 32rem),
+        linear-gradient(180deg, #14090d 0%, #1e0d13 40%, #12070b 100%);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.26;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: linear-gradient(to bottom, #000 0%, transparent 82%);
+    }
+
+    a { color: inherit; text-decoration: none; }
+    .shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(18px);
+      background: rgba(17, 8, 12, 0.76);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav-inner {
+      min-height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 0.9rem;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+    .brand img {
+      width: 36px;
+      height: 36px;
+      border-radius: 11px;
+      box-shadow: 0 0 0 1px rgba(255, 93, 106, 0.22);
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 26px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .nav-links a,
+    .footer-links a {
+      transition: color 180ms ease;
+    }
+    .nav-links a:hover,
+    .footer-links a:hover {
+      color: var(--accent-3);
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 48px;
+      padding: 0 20px;
+      border-radius: 14px;
+      border: 1px solid var(--line-strong);
+      background: rgba(255, 93, 106, 0.1);
+      color: #ffd8d9;
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+      transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+    }
+    .button:hover {
+      transform: translateY(-2px);
+      background: rgba(255, 93, 106, 0.16);
+      border-color: rgba(255, 93, 106, 0.7);
+    }
+    .button.primary {
+      border-color: transparent;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #23060c;
+    }
+    .button.quiet {
+      background: rgba(255,255,255,0.04);
+      border-color: var(--line);
+      color: var(--text);
+    }
+
+    .hero {
+      padding: 72px 0 54px;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 0.95fr) minmax(460px, 1.05fr);
+      gap: 54px;
+      align-items: center;
+    }
+    h1 {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: clamp(3.2rem, 8vw, 6.5rem);
+      line-height: 0.94;
+      letter-spacing: -0.06em;
+    }
+    .hero-mark {
+      color: var(--accent);
+      display: block;
+    }
+    .lead {
+      margin: 28px 0 0;
+      max-width: 560px;
+      color: #e8d5d8;
+      font-size: clamp(1.04rem, 1.8vw, 1.28rem);
+      line-height: 1.72;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 34px;
+    }
+    .proof {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+      margin-top: 28px;
+      color: var(--soft);
+      font-size: 0.86rem;
+    }
+    .proof span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--green);
+      box-shadow: 0 0 18px var(--green);
+    }
+
+    .hero-card {
+      position: relative;
+      min-height: 540px;
+      padding: 24px;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 34px;
+      background:
+        linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)),
+        rgba(14, 7, 10, 0.76);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .hero-card::before {
+      content: "";
+      position: absolute;
+      inset: -30% auto auto -10%;
+      width: 380px;
+      height: 380px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 93, 106, 0.26), transparent 68%);
+    }
+    .window {
+      position: relative;
+      border-radius: 22px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: #1d1b1d;
+    }
+    .traffic {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 46px;
+      padding: 0 18px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+    }
+    .traffic i {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: #ff5f57;
+    }
+    .traffic i:nth-child(2) { background: #febb2e; }
+    .traffic i:nth-child(3) { background: #27c93f; }
+
+    .app-preview {
+      display: grid;
+      grid-template-columns: 290px minmax(0, 1fr);
+      min-height: 448px;
+    }
+    .preview-sidebar {
+      padding: 24px 18px;
+      border-right: 1px solid var(--line);
+      background: rgba(255,255,255,0.03);
+    }
+    .preview-sidebar h2 {
+      margin: 0 0 18px;
+      font-size: 1.9rem;
+      font-weight: 700;
+    }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+    .chip {
+      padding: 10px 16px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.05);
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+    .chip.active {
+      background: linear-gradient(135deg, var(--accent), #ff7f69);
+      color: white;
+    }
+    .search {
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: rgba(0,0,0,0.24);
+      color: #a7a2a5;
+      margin-bottom: 18px;
+    }
+    .download-card {
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.08);
+      color: #f3eef0;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
+    }
+    .download-card small,
+    .search small {
+      display: block;
+      color: var(--soft);
+      margin-top: 6px;
+    }
+    .preview-main {
+      display: grid;
+      grid-template-rows: 210px 1fr;
+    }
+    .hero-panel {
+      padding: 26px 30px;
+      background: linear-gradient(135deg, #ff404e 0%, #c43a34 100%);
+    }
+    .hero-panel .label {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.16);
+      font-size: 0.92rem;
+      font-weight: 700;
+    }
+    .hero-panel h3 {
+      margin: 18px 0 8px;
+      font-size: clamp(1.9rem, 3vw, 3rem);
+      line-height: 1.05;
+    }
+    .hero-panel p {
+      margin: 0;
+      font-size: 1.16rem;
+      color: rgba(255,255,255,0.92);
+    }
+    .detail-panel {
+      padding: 26px 30px;
+      display: grid;
+      gap: 20px;
+    }
+    .error-box {
+      padding: 18px 20px;
+      border-radius: 18px;
+      background: rgba(255, 93, 106, 0.12);
+      border: 1px solid rgba(255, 93, 106, 0.18);
+      color: #ffd5da;
+      font-weight: 700;
+      line-height: 1.45;
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .detail-cell {
+      padding: 16px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .detail-cell span {
+      display: block;
+      color: var(--soft);
+      font-size: 0.75rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    .detail-cell strong {
+      display: block;
+      margin-top: 8px;
+      font-size: 1rem;
+      color: var(--text);
+    }
+    .action-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    section {
+      padding: 78px 0;
+    }
+    .section-title {
+      max-width: 760px;
+      margin: 0 auto 48px;
+      text-align: center;
+    }
+    .section-title h2 {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: clamp(2.3rem, 5vw, 4rem);
+      line-height: 1.04;
+      letter-spacing: -0.045em;
+    }
+    .section-title p {
+      margin: 18px auto 0;
+      max-width: 650px;
+      color: var(--muted);
+      font-size: 1.04rem;
+      line-height: 1.7;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+    .feature {
+      min-height: 238px;
+      padding: 24px;
+      border-radius: 24px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--line);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+    .feature .eyebrow {
+      display: inline-block;
+      color: var(--accent-3);
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+    .feature h3 {
+      margin: 18px 0 10px;
+      font-size: 1.28rem;
+      line-height: 1.2;
+    }
+    .feature p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: minmax(0, 0.88fr) minmax(360px, 1.12fr);
+      gap: 36px;
+      align-items: start;
+    }
+    .panel {
+      padding: 28px;
+      border-radius: 28px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+    .panel h3 {
+      margin: 0 0 18px;
+      font-size: 1.35rem;
+    }
+    .stack {
+      display: grid;
+      gap: 14px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .stack li {
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .stack li strong {
+      color: var(--text);
+    }
+    pre {
+      margin: 0;
+      padding: 20px;
+      overflow: auto;
+      border-radius: 20px;
+      background: rgba(0,0,0,0.24);
+      border: 1px solid rgba(255,255,255,0.06);
+      color: #f3e7ea;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      line-height: 1.7;
+    }
+
+    .release-band {
+      display: grid;
+      grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+      gap: 36px;
+      align-items: center;
+      padding: 42px;
+      border-radius: var(--radius);
+      background:
+        radial-gradient(circle at 18% 20%, rgba(255, 93, 106, 0.16), transparent 24rem),
+        rgba(255,255,255,0.04);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+    .release-band h2 {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: clamp(2rem, 4vw, 3.4rem);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+    }
+    .release-band p {
+      margin: 18px 0 0;
+      color: var(--muted);
+      line-height: 1.68;
+    }
+    .release-list {
+      display: grid;
+      gap: 12px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .release-list li {
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      color: var(--muted);
+      line-height: 1.55;
+    }
+    .release-list strong {
+      color: var(--text);
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 18px;
+    }
+    .step {
+      min-height: 218px;
+      padding: 24px;
+      border-radius: 24px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--line);
+    }
+    .step-num {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 1px solid var(--line-strong);
+      color: var(--accent-3);
+      font-weight: 900;
+    }
+    .step h3 {
+      margin: 22px 0 10px;
+      font-size: 0.86rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--accent-3);
+    }
+    .step p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.62;
+    }
+    .note {
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(124, 224, 161, 0.2);
+      background: rgba(124, 224, 161, 0.06);
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    footer {
+      padding: 36px 0 44px;
+      border-top: 1px solid var(--line);
+      color: var(--soft);
+    }
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    @media (max-width: 1020px) {
+      .hero-grid,
+      .split,
+      .release-band {
+        grid-template-columns: 1fr;
+      }
+      .feature-grid,
+      .steps {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .nav-links {
+        display: none;
+      }
+      .app-preview {
+        grid-template-columns: 1fr;
+      }
+      .preview-sidebar {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+    }
+
+    @media (max-width: 720px) {
+      .shell { width: min(100% - 26px, 1180px); }
+      .hero { padding-top: 46px; }
+      .hero-card { min-height: auto; }
+      .feature-grid,
+      .steps,
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+      .release-band {
+        padding: 28px;
+      }
+      .footer-inner {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="shell nav-inner">
+      <a class="brand" href="#top" aria-label="VideoVault home">
+        <img src="assets/icon-256.png" alt="">
+        <span>VideoVault</span>
+      </a>
+      <div class="nav-links" aria-label="Primary navigation">
+        <a href="#features">Features</a>
+        <a href="#formats">Formats</a>
+        <a href="#release">Release</a>
+        <a href="#install">Install</a>
+      </div>
+      <a class="button quiet" href="https://github.com/eMacTh3Creator/VideoVault">GitHub</a>
+    </div>
+  </nav>
+
+  <main id="top">
+    <section class="hero">
+      <div class="shell hero-grid">
+        <div>
+          <h1>
+            Save the video.
+            <span class="hero-mark">Keep the workflow.</span>
+          </h1>
+          <p class="lead">VideoVault is a native macOS app for downloading videos from YouTube, Vimeo, TikTok, Reddit, Twitter/X, and 1000+ other sites with queueing, retries, smart format fallback, and a clean desktop UI built around <a href="https://github.com/yt-dlp/yt-dlp">yt-dlp</a>.</p>
+          <div class="actions">
+            <a class="button primary" href="https://github.com/eMacTh3Creator/VideoVault/releases/latest">Download latest release</a>
+            <a class="button quiet" href="https://github.com/eMacTh3Creator/VideoVault">View source</a>
+          </div>
+          <div class="proof" aria-label="Project highlights">
+            <span><i class="dot"></i>macOS 13+</span>
+            <span><i class="dot"></i>SwiftUI native</span>
+            <span><i class="dot"></i>1000+ supported sites</span>
+          </div>
+        </div>
+
+        <div class="hero-card" aria-label="VideoVault app preview">
+          <div class="window">
+            <div class="traffic"><i></i><i></i><i></i></div>
+            <div class="app-preview">
+              <div class="preview-sidebar">
+                <h2>Downloads</h2>
+                <div class="chips">
+                  <div class="chip active">All</div>
+                  <div class="chip">Active</div>
+                  <div class="chip">Queued</div>
+                </div>
+                <div class="search">Search downloads...<small>youtube.com · Best Quality Video</small></div>
+                <div class="download-card">
+                  <strong>https://www.youtube.com/watch?v=...</strong>
+                  <small>Fetching, queueing, and detail views stay in one place.</small>
+                </div>
+              </div>
+              <div class="preview-main">
+                <div class="hero-panel">
+                  <div class="label">Best Quality Video</div>
+                  <h3>Paste a URL and let the queue do the work.</h3>
+                  <p>Smart fallback keeps downloads moving when exact formats are missing.</p>
+                </div>
+                <div class="detail-panel">
+                  <div class="error-box">YouTube-ready behavior with cookie support, realistic browser headers, ffmpeg merging, and retry-friendly format selection.</div>
+                  <div class="detail-grid">
+                    <div class="detail-cell">
+                      <span>Formats</span>
+                      <strong>MP3 to 4K</strong>
+                    </div>
+                    <div class="detail-cell">
+                      <span>Engine</span>
+                      <strong>yt-dlp + ffmpeg</strong>
+                    </div>
+                    <div class="detail-cell">
+                      <span>Queue</span>
+                      <strong>Persistent JSON history</strong>
+                    </div>
+                  </div>
+                  <div class="action-row">
+                    <a class="button primary" href="https://github.com/eMacTh3Creator/VideoVault/releases/latest">Get the app</a>
+                    <a class="button quiet" href="https://github.com/eMacTh3Creator/VideoVault/blob/main/README.md">Read the docs</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
+      <div class="shell">
+        <div class="section-title">
+          <h2>Built like a download manager, not a URL textbox.</h2>
+          <p>VideoVault wraps yt-dlp in a native Mac workflow with queue persistence, detail views, smarter fallbacks, and settings that matter for real-world downloads.</p>
+        </div>
+
+        <div class="feature-grid">
+          <article class="feature">
+            <span class="eyebrow">Batch</span>
+            <h3>Queue one link or a hundred.</h3>
+            <p>Paste unlimited URLs, keep them in a persistent queue, and let VideoVault process them in the background without freezing the app.</p>
+          </article>
+          <article class="feature">
+            <span class="eyebrow">Fallbacks</span>
+            <h3>Resolution requests fail gracefully.</h3>
+            <p>720p, 1080p, 1440p, 4K, and best-available downloads automatically fall back when an exact format is not exposed by the source.</p>
+          </article>
+          <article class="feature">
+            <span class="eyebrow">YouTube</span>
+            <h3>Handles the messy parts.</h3>
+            <p>Browser cookies, realistic user-agent headers, extractor arguments, and ffmpeg integration help VideoVault survive common YouTube edge cases.</p>
+          </article>
+          <article class="feature">
+            <span class="eyebrow">Metadata</span>
+            <h3>Save more than just the file.</h3>
+            <p>Optionally embed thumbnails, titles, and uploader metadata into completed downloads when the format supports it.</p>
+          </article>
+          <article class="feature">
+            <span class="eyebrow">Organization</span>
+            <h3>Keep files sorted by source.</h3>
+            <p>Downloads can be grouped automatically into per-site folders like <code>youtube</code>, <code>vimeo</code>, or <code>reddit</code>.</p>
+          </article>
+          <article class="feature">
+            <span class="eyebrow">Native</span>
+            <h3>Designed for macOS first.</h3>
+            <p>SwiftUI split-view layout, notifications, onboarding, settings sheets, and Finder-friendly actions make it feel like a real desktop app.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="formats">
+      <div class="shell split">
+        <div class="panel">
+          <h3>Format options</h3>
+          <ul class="stack">
+            <li><strong>MP3 Audio</strong><br>Extract audio and convert it with ffmpeg.</li>
+            <li><strong>Best Audio (M4A)</strong><br>Keep the best available audio track without forcing MP3.</li>
+            <li><strong>720p / 1080p / 1440p / 4K Video</strong><br>Ask for a ceiling and let VideoVault fall back safely when needed.</li>
+            <li><strong>Best Quality Video</strong><br>Grab the highest quality path the source exposes.</li>
+          </ul>
+        </div>
+
+        <div class="panel">
+          <h3>Built on top of yt-dlp</h3>
+          <pre><code>VideoVault
+  ├─ Fetch video metadata
+  ├─ Build the safest matching format plan
+  ├─ Retry if exact formats are missing
+  ├─ Merge streams with ffmpeg when needed
+  ├─ Embed metadata and thumbnails
+  └─ Save into source-aware folders
+
+Supports YouTube, Vimeo, TikTok, Reddit,
+Twitter/X, Twitch, Instagram, and the full
+yt-dlp supported-sites matrix.</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section id="release">
+      <div class="shell">
+        <div class="release-band">
+          <div>
+            <h2>Current public release</h2>
+            <p>Grab the newest build from GitHub Releases, unzip it, and move <strong>VideoVault.app</strong> into <code>/Applications</code>. The project currently ships as an unsigned zip, so first launch may require right-click → Open.</p>
+            <div class="actions">
+              <a class="button primary" href="https://github.com/eMacTh3Creator/VideoVault/releases/latest">Open latest release</a>
+              <a class="button quiet" href="https://github.com/eMacTh3Creator/VideoVault/releases">Release notes</a>
+            </div>
+          </div>
+
+          <ul class="release-list">
+            <li><strong>v1.2</strong><br>Improved YouTube format fallback behavior, fixed app icon packaging, and published downloadable release assets.</li>
+            <li><strong>Smart format retry</strong><br>Requested video qualities now step through safer fallback selectors instead of failing immediately.</li>
+            <li><strong>Bundle assets fixed</strong><br>The macOS app icon now packages correctly for Finder, Dock, and the downloadable zip.</li>
+            <li><strong>Windows port started</strong><br>A native WPF scaffold now exists in the repo for future Windows development.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="install">
+      <div class="shell">
+        <div class="section-title">
+          <h2>Install in a few minutes.</h2>
+          <p>The app is simple to get running: download the release, clear the first-launch warning once, then let onboarding detect or install its helper tools.</p>
+        </div>
+
+        <div class="steps">
+          <article class="step">
+            <div class="step-num">1</div>
+            <h3>Download</h3>
+            <p>Open the latest GitHub Release and download the current macOS zip for VideoVault.</p>
+          </article>
+          <article class="step">
+            <div class="step-num">2</div>
+            <h3>Move</h3>
+            <p>Unzip the archive and drag <strong>VideoVault.app</strong> into your <code>/Applications</code> folder.</p>
+          </article>
+          <article class="step">
+            <div class="step-num">3</div>
+            <h3>Open once</h3>
+            <p>Because the app is unsigned, first launch may require right-clicking the app and choosing <strong>Open</strong>.</p>
+          </article>
+          <article class="step">
+            <div class="step-num">4</div>
+            <h3>Finish onboarding</h3>
+            <p>Let VideoVault detect or install <strong>yt-dlp</strong> and <strong>ffmpeg</strong>, then start queueing links.</p>
+          </article>
+        </div>
+
+        <div class="note">
+          <strong>Dependencies:</strong> VideoVault relies on <a href="https://github.com/yt-dlp/yt-dlp">yt-dlp</a> for extraction and <a href="https://ffmpeg.org">ffmpeg</a> for stream merging and MP3 conversion. The app is designed to help users install both during first launch, so Homebrew is convenient but not required.
+        </div>
+      </div>
+    </section>
+
+    <section id="windows">
+      <div class="shell split">
+        <div class="panel">
+          <h3>Windows port in progress</h3>
+          <p style="margin:0;color:var(--muted);line-height:1.7;">A native Windows scaffold now lives in the repository as a <strong>C# / .NET 8 / WPF</strong> solution. The Mac app is still the primary release, but the repo now includes an early Windows project structure for future development.</p>
+        </div>
+        <div class="panel">
+          <h3>Repository links</h3>
+          <ul class="stack">
+            <li><strong>Source repository</strong><br><a href="https://github.com/eMacTh3Creator/VideoVault">github.com/eMacTh3Creator/VideoVault</a></li>
+            <li><strong>README and app docs</strong><br><a href="https://github.com/eMacTh3Creator/VideoVault/blob/main/README.md">View the project README</a></li>
+            <li><strong>Windows scaffold</strong><br><a href="https://github.com/eMacTh3Creator/VideoVault/tree/main/VideoVault-Windows">Browse the WPF starter project</a></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="shell footer-inner">
+      <div>VideoVault is MIT licensed and built around a native macOS workflow powered by yt-dlp.</div>
+      <div class="footer-links">
+        <a href="https://github.com/eMacTh3Creator/VideoVault">GitHub</a>
+        <a href="https://github.com/eMacTh3Creator/VideoVault/releases">Releases</a>
+        <a href="https://github.com/eMacTh3Creator/VideoVault/blob/main/LICENSE">License</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
