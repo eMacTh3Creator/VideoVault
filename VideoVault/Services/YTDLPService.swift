@@ -40,37 +40,54 @@ struct DownloadOptions: Sendable {
     let enableFallbackDownloader: Bool
     let organizeBySource: Bool
     let autoRetryFailed: Bool
+    let forceRecovery: Bool
 
-    @MainActor init(settings: AppSettings = .shared) {
+    @MainActor init(settings: AppSettings = .shared, forceRecovery: Bool = false) {
         root = settings.downloadURL.standardizedFileURL
         ytdlpPath = settings.ytdlpPath
         ffmpegPath = settings.ffmpegPath
         streamlinkPath = settings.streamlinkPath
         useBrowserCookies = settings.useBrowserCookies
         cookiesBrowser = settings.cookiesBrowser
-        embedMetadata = settings.embedMetadata
-        embedThumbnail = settings.embedThumbnail
+        embedMetadata = !forceRecovery && settings.embedMetadata
+        embedThumbnail = !forceRecovery && settings.embedThumbnail
         skipDuplicates = settings.skipDuplicates
-        enableFallbackDownloader = settings.enableFallbackDownloader
+        enableFallbackDownloader = forceRecovery || settings.enableFallbackDownloader
         organizeBySource = settings.organizeBySource
         autoRetryFailed = settings.autoRetryFailed
+        self.forceRecovery = forceRecovery
     }
 }
 
 enum DownloadFailurePolicy {
-    static func isSiteRestriction(_ message: String) -> Bool {
+    static func isUnsafeExtension(_ message: String) -> Bool {
         let text = message.lowercased()
+        return text.contains("the extracted extension") && text.contains("is unusual")
+            && text.contains("will be skipped for safety reasons")
+    }
+    static func isSiteRestriction(_ message: String) -> Bool {
+        let text = restrictionText(message)
         return ["safety reason", "video has been removed", "video is unavailable", "private video", "drm protected", "drm-protected",
                 "copyright", "not available in your country", "geo-restricted", "login required", "sign in to confirm your age",
                 "age verification", "video closed", "video is blocked"].contains { text.contains($0) }
+    }
+    private static func restrictionText(_ message: String) -> String {
+        // This exact diagnostic comes from yt-dlp's filename validator, not the website.
+        // Remove only that diagnostic; genuine restrictions elsewhere still stop fallback.
+        message.lowercased().replacingOccurrences(
+            of: #"the extracted extension[^\r\n]*?is unusual and will be skipped for safety reasons\.?"#,
+            with: "", options: .regularExpression)
     }
     static func isTransient(_ message: String) -> Bool {
         let text = message.lowercased()
         return ["timed out", "stopped responding", "connection reset", "temporary failure", "http error 429", "http error 50", "network is unreachable"].contains { text.contains($0) }
     }
     static func explanation(_ message: String) -> String {
-        if message.lowercased().contains("safety reason") {
+        if isSiteRestriction(message), restrictionText(message).contains("safety reason") {
             return "The website refused access to this video for safety reasons. yt-dlp is reporting the website's response. Open the original page in your browser and follow the site's support instructions.\n\n\(message)"
+        }
+        if isUnsafeExtension(message), !isSiteRestriction(message) {
+            return "yt-dlp rejected an unusual file extension. This can be caused by a malformed thumbnail filename; it is not a website access refusal.\n\n\(message)"
         }
         return message
     }
@@ -155,29 +172,54 @@ final class YTDLPService {
             variants = [["-f", selector]]
         }
         var lastMessage = "Download failed"
+        var omitThumbnail = options.forceRecovery
         for cookies in (options.useBrowserCookies ? [true, false] : [false]) {
             for variant in variants {
-                try Task.checkCancellation()
-                var args = commonArgs(cookies: cookies, options: options) + variant + [
-                    "-P", outputDirectory.path,
-                    "-o", "%(title).160B [%(extractor_key)s-%(id)s] [\(format.storageKey)].%(ext)s",
-                    "--newline", "--progress", "--progress-template", "download:__VV_PROGRESS__%(progress._percent_str)s",
-                    "--print", "after_move:__VV_RESULT__%(.{filepath,id,extractor_key})j"
-                ]
-                args += options.skipDuplicates ? ["--no-overwrites"] : ["--force-overwrites"]
-                if options.embedMetadata { args += ["--embed-metadata"] }
-                if options.embedThumbnail && !format.isAudioOnly { args += ["--embed-thumbnail"] }
-                args += ["--", url]
-                let result = try await ProcessRunner().run(executable: options.ytdlpPath, arguments: args,
-                    directory: outputDirectory, timeout: 180, inactivityTimeout: true) { line in
-                    if line.hasPrefix("__VV_PROGRESS__") {
-                        let value = line.dropFirst("__VV_PROGRESS__".count).replacingOccurrences(of: "%", with: "").trimmingCharacters(in: .whitespaces)
-                        if let percent = Double(value) { progressHandler(min(max(percent / 100, 0), 1), "Downloading") }
-                    } else if line.contains("[Merger]") || line.contains("[ExtractAudio]") { progressHandler(0.99, "Converting") }
+                while true {
+                    try Task.checkCancellation()
+                    var args = commonArgs(cookies: cookies, options: options) + variant + [
+                        "-P", outputDirectory.path,
+                        "-o", "%(title).160B [%(extractor_key)s-%(id)s] [\(format.storageKey)].%(ext)s",
+                        "--newline", "--progress", "--progress-template", "download:__VV_PROGRESS__%(progress._percent_str)s",
+                        "--print", "after_move:__VV_RESULT__%(.{filepath,id,extractor_key})j"
+                    ]
+                    args += options.skipDuplicates ? ["--no-overwrites"] : ["--force-overwrites"]
+                    if options.embedMetadata { args += ["--embed-metadata"] }
+                    if omitThumbnail { args += ["--no-write-thumbnail", "--no-embed-thumbnail"] }
+                    else if options.embedThumbnail && !format.isAudioOnly { args += ["--embed-thumbnail"] }
+                    args += ["--", url]
+                    let result: ProcessResult
+                    do {
+                        result = try await ProcessRunner().run(executable: options.ytdlpPath, arguments: args,
+                            directory: outputDirectory, timeout: 180, inactivityTimeout: true) { line in
+                            if line.hasPrefix("__VV_PROGRESS__") {
+                                let value = line.dropFirst("__VV_PROGRESS__".count).replacingOccurrences(of: "%", with: "").trimmingCharacters(in: .whitespaces)
+                                if let percent = Double(value) { progressHandler(min(max(percent / 100, 0), 1), "Downloading") }
+                            } else if line.contains("[Merger]") || line.contains("[ExtractAudio]") { progressHandler(0.99, "Converting") }
+                        }
+                    } catch is CancellationError { throw CancellationError() }
+                    catch {
+                        try Task.checkCancellation()
+                        lastMessage = error.localizedDescription
+                        break
+                    }
+                    if result.exitCode == 0 {
+                        do { return try Self.downloadResult(output: result.output, directory: outputDirectory) }
+                        catch { lastMessage = error.localizedDescription; break }
+                    }
+                    lastMessage = result.message
+                    if DownloadFailurePolicy.isSiteRestriction(lastMessage) {
+                        throw YTDLPError.downloadFailed(DownloadFailurePolicy.explanation(lastMessage))
+                    }
+                    if !omitThumbnail, options.embedThumbnail, !format.isAudioOnly,
+                       DownloadFailurePolicy.isUnsafeExtension(lastMessage) {
+                        // Omit the optional image, never disable yt-dlp's extension validation.
+                        omitThumbnail = true
+                        progressHandler(0, "Retrying without thumbnail embedding")
+                        continue
+                    }
+                    break
                 }
-                if result.exitCode == 0 { return try Self.downloadResult(output: result.output, directory: outputDirectory) }
-                lastMessage = result.message
-                if DownloadFailurePolicy.isSiteRestriction(lastMessage) { throw YTDLPError.downloadFailed(DownloadFailurePolicy.explanation(lastMessage)) }
                 if !lastMessage.lowercased().contains("requested format is not available") { break }
                 progressHandler(0, "Trying another available format")
             }
@@ -190,7 +232,7 @@ final class YTDLPService {
             } catch is CancellationError { throw CancellationError() }
             catch { lastMessage += "\n\nFallback: \(error.localizedDescription)" }
         }
-        throw YTDLPError.downloadFailed(lastMessage)
+        throw YTDLPError.downloadFailed(DownloadFailurePolicy.explanation(lastMessage))
     }
 
     static func downloadResult(output: String, directory: URL) throws -> DownloadResult {

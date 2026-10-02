@@ -10,6 +10,10 @@ enum DownloadStatus: Equatable, Codable, Sendable {
     case error(String)
     case cancelled
 
+    var canRetry: Bool {
+        switch self { case .error, .cancelled: return true; default: return false }
+    }
+
     var displayName: String {
         switch self {
         case .queued: return "Queued"
@@ -178,6 +182,7 @@ struct DownloadItem: Identifiable, Codable, Equatable, Hashable, Sendable {
     var mediaID: String?
     var downloader: String?
     var retryCount: Int?
+    var forceRecovery: Bool?
 
     init(url: String, format: DownloadFormat) {
         self.id = UUID()
@@ -215,6 +220,7 @@ struct DownloadItem: Identifiable, Codable, Equatable, Hashable, Sendable {
         lhs.mediaID == rhs.mediaID &&
         lhs.downloader == rhs.downloader &&
         lhs.retryCount == rhs.retryCount &&
+        lhs.forceRecovery == rhs.forceRecovery &&
         lhs.dateCompleted == rhs.dateCompleted &&
         lhs.url == rhs.url && lhs.format == rhs.format
     }

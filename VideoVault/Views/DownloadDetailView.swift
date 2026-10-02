@@ -113,6 +113,12 @@ struct DownloadDetailView: View {
                     .background(Color.red.opacity(0.1))
                     .cornerRadius(8)
             }
+
+            if item.forceRecovery == true {
+                Text("Force Retry: optional thumbnail/metadata processing is off; supported backup downloaders are enabled. Security and access checks remain on.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
         }
     }
 
@@ -205,6 +211,14 @@ struct DownloadDetailView: View {
                     .buttonStyle(.bordered)
                 }
 
+                if item.status.canRetry {
+                    Button(action: { manager.retryItem(item, forceRecovery: true) }) {
+                        Label("Force Retry", systemImage: "arrow.triangle.branch")
+                    }
+                    .buttonStyle(.bordered)
+                    .help("Retry without optional thumbnail/metadata processing and enable supported backup downloaders for this job. Security checks remain on.")
+                }
+
                 Button(action: {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(item.url, forType: .string)
@@ -226,6 +240,11 @@ struct DownloadDetailView: View {
                 }
                 .buttonStyle(.bordered)
                 .tint(.red)
+            }
+            if case .error = item.status {
+                Text("Force Retry skips optional thumbnail/metadata processing and enables supported backup downloaders for this job. It does not bypass DRM, login requirements, or unsafe-file validation.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
         }
     }

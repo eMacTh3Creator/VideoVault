@@ -1,11 +1,10 @@
-<h2>VideoVault 1.3.1</h2>
+<h2>VideoVault 1.3.2</h2>
 <ul>
-  <li>Fix menu bar freezes while downloading and adding more videos.</li>
-  <li>Independent background download workers, asynchronous queue saves, and bounded progress updates keep the UI responsive.</li>
-  <li>Live active, queued, and failed counts update without rebuilding an open menu.</li>
-  <li>Quick-paste commands read the clipboard after the menu closes, not while it is opening.</li>
-  <li>Cancel one download without interrupting the others. Shutdown waits asynchronously for workers and pending saves.</li>
-  <li>Inherited subprocess output pipes can no longer cause an indefinite wait after the downloader exits.</li>
+  <li>Fix unusual-extension errors being mislabeled as website safety refusals and blocking backup downloads.</li>
+  <li>Automatically retry without the optional thumbnail when a malformed thumbnail filename triggers yt-dlp's extension check.</li>
+  <li>Add Force Retry in download details and the right-click menu: skip optional thumbnail/metadata processing and enable supported backup downloaders for that job.</li>
+  <li>Technical subprocess failures and missing/invalid output now reach backup downloaders. Failed recovery retains both errors.</li>
+  <li>Force Retry preserves normal security checks, genuine access restrictions, cancellation, and duplicate protection. It does not bypass DRM or login requirements.</li>
 </ul>
-<p>Universal Intel and Apple Silicon build for macOS 13 or later. Existing v1.3 users can update through Sparkle; v1.2 users must install manually once.</p>
-<p>This patch retains v1.3 tool updates, duplicate protection, Home navigation, and independent fallback downloads. Site access restrictions are not bypassed.</p>
+<p>Universal Intel and Apple Silicon build for macOS 13 or later. Includes the responsive background workers from 1.3.1. Use Check for Updates in v1.3 or newer.</p>
+<p>Streamlink supports a subset of sites. Recovery is verified against the exact diagnostic and real yt-dlp with local media; the tester's private URL was not supplied.</p>

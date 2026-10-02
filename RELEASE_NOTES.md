@@ -1,3 +1,29 @@
+# VideoVault v1.3.2
+
+Backup recovery and Force Retry patch for macOS 13 and later, on Intel and Apple Silicon.
+
+## Fixes
+
+- Fix incorrect classification of yt-dlp's unusual-extension diagnostic as a website safety refusal. This distinction allows recovery and backup downloaders to run.
+- If optional thumbnail embedding triggers that error, retry once without writing/embedding the thumbnail. Unsafe-extension validation stays enabled; no unsafe-extension compatibility override is used.
+- Subprocess failures and invalid/missing output files now reach the supported backup downloader, not just nonzero exit codes. Original and backup errors remain available if recovery fails.
+- Add **Force Retry** to failed/cancelled download details and the right-click menu. It skips optional thumbnail/metadata processing and enables supported backup downloaders for that job, preserving global settings, requested format, and duplicate protection. The per-job choice survives queue persistence; normal Retry clears it.
+- Genuine site restrictions, DRM/login requirements, and cancellation still prevent recovery attempts, including in Force Retry mode.
+
+## Verification
+
+- Eight new regressions cover the exact screenshot diagnostic, bounded thumbnail retry, independent backup routing, unsupported backup error reporting, real restrictions/cancellation, per-job overrides, queue compatibility, and manager-driven Force Retry.
+- All 31 automated tests passed, including live official tool installation, real local video/audio downloads, fallback downloads, and the previous menu responsiveness regressions.
+- Universal build and signed archive/bundle verification passed. Native click-testing of the new button was blocked by the locked Mac; its manager actions and per-job behavior were tested automatically.
+- The real yt-dlp regression uses locally generated media and a malformed thumbnail filename ending in `.jpg.v1692889884`. It reproduces the extension error, then saves the video after the automatic thumbnail-free retry.
+- The original tester's private video URL was not supplied. This verifies the reported error and recovery path, not that specific remote video. Streamlink still supports only a subset of websites.
+
+## Install
+
+Use **Check for Updates** in v1.3 or newer, or download **VideoVault-v1.3.2-macOS.zip** and move the included **VideoVault.app** to `/Applications`. The full universal `.app` is also tracked under `Releases/`. The app is ad-hoc signed, not Apple-notarized. No Windows binary is included.
+
+---
+
 # VideoVault v1.3.1
 
 Menu bar responsiveness patch for macOS 13 and later, on Intel and Apple Silicon.

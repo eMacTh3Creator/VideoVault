@@ -66,7 +66,7 @@ final class DownloadManager: ObservableObject {
         var current = item
         current.status = .fetching
         let job = current
-        let options = DownloadOptions()
+        let options = DownloadOptions(forceRecovery: item.forceRecovery == true)
         let history = DownloadQueue.shared.items
         let buffer = DownloadProgressBuffer(item: current)
         DownloadQueue.shared.updateItem(current)
@@ -134,12 +134,13 @@ final class DownloadManager: ObservableObject {
         while !activeTasks.isEmpty { try? await Task.sleep(nanoseconds: 20_000_000) }
     }
 
-    func retryItem(_ item: DownloadItem) {
+    func retryItem(_ item: DownloadItem, forceRecovery: Bool = false) {
         guard activeTasks[item.id] == nil else { return }
         var updated = item
         updated.status = .queued
         updated.errorMessage = nil
         updated.retryCount = 0
+        updated.forceRecovery = forceRecovery ? true : nil
         DownloadQueue.shared.updateItem(updated)
         processQueue()
     }
@@ -198,7 +199,7 @@ final class DownloadManager: ObservableObject {
                 finish(&current, result: DownloadResult(file: URL(fileURLWithPath: path), mediaID: prior.mediaID, downloader: "Library", skipped: true))
                 return current
             }
-            buffer.publish(current, activity: "Fetching info: \(current.displayTitle)")
+            buffer.publish(current, activity: "\(options.forceRecovery ? "Force Retry" : "Fetching info"): \(current.displayTitle)")
             do {
                 let info = try await YTDLPService.fetchVideoInfo(url: current.url, options: options)
                 current.title = info.title

@@ -66,12 +66,12 @@ Supports YouTube, Vimeo, Twitter/X, TikTok, Instagram, Reddit, Twitch, and [1000
 
 ### Option 1 — Download the release (recommended)
 
-1. Download **[VideoVault-v1.3.1-macOS.zip](https://github.com/eMacTh3Creator/VideoVault/releases/latest)** from the Releases page
+1. Download **[VideoVault-v1.3.2-macOS.zip](https://github.com/eMacTh3Creator/VideoVault/releases/latest)** from the Releases page
 2. Unzip and drag `VideoVault.app` to your `/Applications` folder
 3. **First launch:** right-click the app → **Open** (required once to bypass Gatekeeper on unsigned apps)
 4. Follow the onboarding to install yt-dlp and ffmpeg
 
-Version 1.2 and older need this one manual install to gain the updater. Version 1.3 and newer check for signed future releases automatically. Version 1.3.1 fixes menu bar freezes during concurrent downloads with background workers, asynchronous queue saves, and bounded progress updates. Builds are universal (Intel and Apple Silicon); the bundle is ad-hoc signed, not Apple-notarized.
+Version 1.2 and older need this one manual install to gain the updater. Version 1.3 and newer check for signed future releases automatically. Version 1.3.2 fixes backup recovery for unusual thumbnail extensions and adds Force Retry. It retains the background workers, asynchronous saves, and bounded progress updates from 1.3.1. Builds are universal (Intel and Apple Silicon); the bundle is ad-hoc signed, not Apple-notarized.
 
 ### Option 2 — Build from source
 
@@ -163,7 +163,9 @@ Open Settings with the gear button in the toolbar.
 
 YouTube changes regularly. Leave automatic yt-dlp updates enabled and use **Settings > Check / Update** when troubleshooting. A missing YouTube JavaScript runtime is installed automatically alongside yt-dlp. Browser cookies are optional and should only be enabled for content you can access with your own account.
 
-Metadata lookup has a timeout and is optional for downloading. Technical failures try alternate format selectors and the independent fallback when supported. Streamlink is primarily a streaming downloader, not a universal replacement for every yt-dlp site. Website safety refusals, removed/private media, DRM, geo-blocks, and account restrictions are explained rather than bypassed. A site asking you to contact its support may need the site's intervention.
+Metadata lookup has a timeout and is optional for downloading. Technical failures try alternate format selectors and the independent fallback when supported. An unusual-extension error from thumbnail processing retries once without the optional image, with yt-dlp's extension validation still enabled. It is not mislabeled as a website refusal.
+
+**Force Retry** is available in failed/cancelled download details and the right-click menu. It skips optional thumbnail/metadata processing and enables supported backup downloaders for that job, without changing your global settings or bypassing duplicate protection. A normal Retry restores your normal settings. Streamlink supports only a subset of sites, not every yt-dlp website. Website refusals, removed/private media, DRM, geo-blocks, and account restrictions remain errors; Force Retry does not bypass them or disable unsafe-file validation.
 
 ---
 

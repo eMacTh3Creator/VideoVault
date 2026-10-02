@@ -196,8 +196,9 @@ struct SidebarView: View {
             Button("Cancel") { manager.cancelDownload(item) }
         }
 
-        if case .error = item.status {
+        if item.status.canRetry {
             Button("Retry") { manager.retryItem(item) }
+            Button("Force Retry") { manager.retryItem(item, forceRecovery: true) }
         }
 
         if (item.status == .completed || item.status == .skipped), let path = item.filePath {
