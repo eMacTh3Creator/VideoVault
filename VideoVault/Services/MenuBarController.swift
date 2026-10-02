@@ -16,15 +16,17 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     private var counts = (active: 0, queued: 0, failed: 0)
     private var windowReady = false
     private var pendingWindowAction: Notification.Name?
+    private var isTracking = false
+    private var pendingActions: [@MainActor () -> Void] = []
+    private weak var trackingMenu: NSMenu?
     var openWindow: (() -> Void)?
     var checkForAppUpdates: (() -> Void)?
 
     override init() {
         super.init()
         AppSettings.shared.$showInMenuBar.receive(on: DispatchQueue.main).sink { [weak self] visible in self?.setVisible(visible) }.store(in: &subscriptions)
-        DownloadQueue.shared.$items.receive(on: DispatchQueue.main).sink { [weak self] items in
-            self?.counts = (items.filter { $0.status.isActive }.count, items.filter { $0.status == .queued }.count,
-                           items.filter { if case .error = $0.status { return true }; return false }.count)
+        DownloadQueue.shared.$counts.removeDuplicates().sink { [weak self] counts in
+            self?.counts = (counts.active, counts.queued, counts.failed)
             self?.updateLabel()
         }.store(in: &subscriptions)
     }
@@ -50,6 +52,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         statusItem?.button?.title = " A\(counts.active) Q\(counts.queued) F\(counts.failed)"
         statusItem?.button?.toolTip = "VideoVault: \(counts.active) active, \(counts.queued) queued, \(counts.failed) failed"
         statusItem?.button?.setAccessibilityLabel(statusItem?.button?.toolTip)
+        if let menu = trackingMenu { updateMenuState(menu) }
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
@@ -57,11 +60,9 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         add("VideoVault", to: menu, action: nil)
         add("Active: \(counts.active)   Queue: \(counts.queued)   Failed: \(counts.failed)", to: menu, action: nil)
         menu.addItem(.separator())
-        let hasURLs = !DownloadManager.urls(from: NSPasteboard.general.string(forType: .string) ?? "").isEmpty
-        let video = add("Quick Paste: Best Video Quality", to: menu, action: #selector(pasteVideo))
-        video.isEnabled = hasURLs
-        let audio = add("Quick Paste: Best Audio Quality", to: menu, action: #selector(pasteAudio))
-        audio.isEnabled = hasURLs
+        // Do not request pasteboard data/permissions inside AppKit's tracking loop.
+        add("Quick Paste: Best Video Quality", to: menu, action: #selector(pasteVideo))
+        add("Quick Paste: Best Audio Quality", to: menu, action: #selector(pasteAudio))
         if !DownloadManager.shared.clipboardStatus.isEmpty { add(DownloadManager.shared.clipboardStatus, to: menu, action: nil) }
         menu.addItem(.separator())
         add("Add URLs...", to: menu, action: #selector(addDownloads))
@@ -79,6 +80,27 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
         add("Quit VideoVault", to: menu, action: #selector(quit))
         menu.autoenablesItems = false
+    }
+
+    func menuWillOpen(_ menu: NSMenu) { isTracking = true; trackingMenu = menu }
+    func menuDidClose(_ menu: NSMenu) {
+        isTracking = false
+        trackingMenu = nil
+        let actions = pendingActions
+        pendingActions.removeAll()
+        DispatchQueue.main.async { actions.forEach { $0() } }
+    }
+    func afterMenuCloses(_ action: @escaping @MainActor () -> Void) {
+        if isTracking { pendingActions.append(action) }
+        else { DispatchQueue.main.async { action() } }
+    }
+    private func updateMenuState(_ menu: NSMenu) {
+        if menu.items.count > 1 { menu.items[1].title = "Active: \(counts.active)   Queue: \(counts.queued)   Failed: \(counts.failed)" }
+        for item in menu.items {
+            if item.action == #selector(startQueue) { item.isEnabled = counts.queued > 0 }
+            if item.action == #selector(retryFailed) { item.isEnabled = counts.failed > 0 }
+            if item.action == #selector(stopAll) { item.isEnabled = counts.active + counts.queued > 0 }
+        }
     }
 
     @discardableResult private func add(_ title: String, to menu: NSMenu, action: Selector?) -> NSMenuItem {
@@ -104,17 +126,17 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         pendingWindowAction = nil
         NotificationCenter.default.post(name: notification, object: nil)
     }
-    @objc private func pasteVideo() { DownloadManager.shared.quickPaste(format: .bestVideo) }
-    @objc private func pasteAudio() { DownloadManager.shared.quickPaste(format: .bestAudio) }
-    @objc private func addDownloads() { showWindow(notification: .showAddDownloads) }
-    @objc private func home() { showWindow(notification: .showHome) }
-    @objc private func openFolder() { StorageManager.shared.openDownloadFolder() }
-    @objc private func findDuplicates() { showWindow(notification: .showDuplicates) }
-    @objc private func startQueue() { DownloadManager.shared.processQueue() }
-    @objc private func retryFailed() { DownloadManager.shared.retryAllFailed() }
-    @objc private func stopAll() { DownloadManager.shared.cancelAllDownloads() }
-    @objc private func checkAppUpdates() { checkForAppUpdates?() }
-    @objc private func updateYTDLP() { Task { await DependencyUpdateService.shared.checkAndUpdate(install: true) } }
-    @objc private func settings() { showWindow(notification: .showSettings) }
-    @objc private func quit() { NSApp.terminate(nil) }
+    @objc private func pasteVideo() { afterMenuCloses { DownloadManager.shared.quickPaste(format: .bestVideo) } }
+    @objc private func pasteAudio() { afterMenuCloses { DownloadManager.shared.quickPaste(format: .bestAudio) } }
+    @objc private func addDownloads() { afterMenuCloses { self.showWindow(notification: .showAddDownloads) } }
+    @objc private func home() { afterMenuCloses { self.showWindow(notification: .showHome) } }
+    @objc private func openFolder() { afterMenuCloses { StorageManager.shared.openDownloadFolder() } }
+    @objc private func findDuplicates() { afterMenuCloses { self.showWindow(notification: .showDuplicates) } }
+    @objc private func startQueue() { afterMenuCloses { DownloadManager.shared.processQueue() } }
+    @objc private func retryFailed() { afterMenuCloses { DownloadManager.shared.retryAllFailed() } }
+    @objc private func stopAll() { afterMenuCloses { DownloadManager.shared.cancelAllDownloads() } }
+    @objc private func checkAppUpdates() { afterMenuCloses { self.checkForAppUpdates?() } }
+    @objc private func updateYTDLP() { afterMenuCloses { Task { await DependencyUpdateService.shared.checkAndUpdate(install: true) } } }
+    @objc private func settings() { afterMenuCloses { self.showWindow(notification: .showSettings) } }
+    @objc private func quit() { afterMenuCloses { NSApp.terminate(nil) } }
 }

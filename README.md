@@ -66,12 +66,12 @@ Supports YouTube, Vimeo, Twitter/X, TikTok, Instagram, Reddit, Twitch, and [1000
 
 ### Option 1 — Download the release (recommended)
 
-1. Download **[VideoVault-v1.3-macOS.zip](https://github.com/eMacTh3Creator/VideoVault/releases/latest)** from the Releases page
+1. Download **[VideoVault-v1.3.1-macOS.zip](https://github.com/eMacTh3Creator/VideoVault/releases/latest)** from the Releases page
 2. Unzip and drag `VideoVault.app` to your `/Applications` folder
 3. **First launch:** right-click the app → **Open** (required once to bypass Gatekeeper on unsigned apps)
 4. Follow the onboarding to install yt-dlp and ffmpeg
 
-Version 1.2 and older need this one manual install to gain the updater. Version 1.3 checks for signed future releases automatically. Builds are universal (Intel and Apple Silicon); the bundle is ad-hoc signed, not Apple-notarized.
+Version 1.2 and older need this one manual install to gain the updater. Version 1.3 and newer check for signed future releases automatically. Version 1.3.1 fixes menu bar freezes during concurrent downloads with background workers, asynchronous queue saves, and bounded progress updates. Builds are universal (Intel and Apple Silicon); the bundle is ad-hoc signed, not Apple-notarized.
 
 ### Option 2 — Build from source
 

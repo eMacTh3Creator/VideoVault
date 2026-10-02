@@ -1,6 +1,13 @@
 import Foundation
 import Darwin
 
+enum BackgroundWork {
+    static func run<Value: Sendable>(_ operation: @escaping @Sendable () async throws -> Value) async throws -> Value {
+        let task = Task.detached(priority: .utility, operation: operation)
+        return try await withTaskCancellationHandler(operation: { try await task.value }, onCancel: { task.cancel() })
+    }
+}
+
 struct ProcessResult {
     let output: String
     let errorOutput: String
@@ -62,44 +69,28 @@ final class ProcessRunner: @unchecked Sendable {
                         continuation.resume(throwing: CancellationError())
                         return
                     }
-                    do {
-                        try child.run()
-                        self.process = child
-                        self.lastActivity = Date()
-                        self.lock.unlock()
-                    } catch {
-                        self.lock.unlock()
+                    self.process = child
+                    self.lastActivity = Date()
+                    self.lock.unlock()
+                    do { try child.run() }
+                    catch {
                         continuation.resume(throwing: error)
                         return
                     }
+                    self.lock.lock()
+                    let cancelledDuringLaunch = self.stopped
+                    self.lock.unlock()
+                    if cancelledDuringLaunch { Self.terminate(child) }
 
                     let output = LockedOutput()
                     let errors = LockedOutput()
                     let readers = DispatchGroup()
+                    var pipeReaders: [ProcessPipeReader] = []
                     for (pipe, capture, reportsLines) in [(stdout, output, true), (stderr, errors, false)] {
-                        readers.enter()
-                        DispatchQueue.global(qos: .utility).async {
-                            var pending = Data()
-                            while true {
-                                let data = pipe.fileHandleForReading.availableData
-                                if data.isEmpty { break }
-                                self.lock.lock()
-                                self.lastActivity = Date()
-                                self.lock.unlock()
-                                capture.append(data)
-                                if reportsLines {
-                                    pending.append(data)
-                                    while let end = pending.firstIndex(of: 10) {
-                                        let line = pending.prefix(upTo: end)
-                                        onLine(String(decoding: line, as: UTF8.self))
-                                        pending.removeSubrange(...end)
-                                    }
-                                    if pending.count > 1024 * 1024 { pending.removeAll() }
-                                }
-                            }
-                            if reportsLines, !pending.isEmpty { onLine(String(decoding: pending, as: UTF8.self)) }
-                            readers.leave()
-                        }
+                        pipeReaders.append(ProcessPipeReader(handle: pipe.fileHandleForReading, capture: capture,
+                            group: readers, onData: {
+                                self.lock.lock(); self.lastActivity = Date(); self.lock.unlock()
+                            }, onLine: reportsLines ? onLine : nil))
                     }
 
                     let started = Date()
@@ -112,7 +103,12 @@ final class ProcessRunner: @unchecked Sendable {
                         Thread.sleep(forTimeInterval: 0.05)
                     }
                     child.waitUntilExit()
-                    readers.wait()
+                    // A descendant can inherit a pipe after its parent exits. Never wait forever for EOF.
+                    let pipesClosed = readers.wait(timeout: .now() + 1) == .success
+                    if !pipesClosed {
+                        pipeReaders.forEach { $0.cancel() }
+                        readers.wait()
+                    }
                     self.lock.lock()
                     let wasStopped = self.stopped
                     let wasTimedOut = self.timedOut
@@ -120,6 +116,7 @@ final class ProcessRunner: @unchecked Sendable {
                     self.lock.unlock()
                     if wasTimedOut { continuation.resume(throwing: ProcessFailure.timedOut) }
                     else if wasStopped { continuation.resume(throwing: CancellationError()) }
+                    else if !pipesClosed { continuation.resume(throwing: ProcessFailure.failed("The downloader exited but left its output open. Please retry the download.")) }
                     else { continuation.resume(returning: ProcessResult(output: output.text, errorOutput: errors.text, exitCode: child.terminationStatus)) }
                 }
             }
@@ -133,14 +130,21 @@ final class ProcessRunner: @unchecked Sendable {
         timedOut = timeout
         let child = process
         lock.unlock()
-        guard let child, child.isRunning else { return }
-        // Stop descendants too (yt-dlp can have an ffmpeg process holding its pipes open).
-        let descendants = Self.descendants(of: child.processIdentifier)
-        for pid in descendants.reversed() { kill(pid, SIGTERM) }
-        child.terminate()
-        DispatchQueue.global().asyncAfter(deadline: .now() + 1) {
-            for pid in descendants.reversed() { kill(pid, SIGKILL) }
-            if child.isRunning { kill(child.processIdentifier, SIGKILL) }
+        guard let child else { return }
+        Self.terminate(child)
+    }
+
+    private static func terminate(_ child: Process) {
+        // Cancellation handlers may execute on the UI thread. Process-tree inspection must not.
+        DispatchQueue.global(qos: .utility).async {
+            guard child.isRunning else { return }
+            let descendants = Self.descendants(of: child.processIdentifier)
+            for pid in descendants.reversed() { kill(pid, SIGTERM) }
+            kill(child.processIdentifier, SIGTERM)
+            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 1) {
+                for pid in descendants.reversed() { kill(pid, SIGKILL) }
+                if child.isRunning { kill(child.processIdentifier, SIGKILL) }
+            }
         }
     }
 
@@ -156,6 +160,65 @@ final class ProcessRunner: @unchecked Sendable {
         query.waitUntilExit()
         let children = String(decoding: data, as: UTF8.self).split(whereSeparator: \.isWhitespace).compactMap { Int32($0) }
         return children.flatMap { [$0] + descendants(of: $0) }
+    }
+}
+
+// Nonblocking descriptors let cancellation close an inherited pipe without a stuck read thread.
+private final class ProcessPipeReader: @unchecked Sendable {
+    private let source: DispatchSourceRead
+    private let handle: FileHandle
+    private let capture: LockedOutput
+    private let onData: @Sendable () -> Void
+    private let onLine: (@Sendable (String) -> Void)?
+    private var pending = Data()
+
+    init(handle: FileHandle, capture: LockedOutput, group: DispatchGroup,
+         onData: @escaping @Sendable () -> Void, onLine: (@Sendable (String) -> Void)?) {
+        self.handle = handle
+        self.capture = capture
+        self.onData = onData
+        self.onLine = onLine
+        let fd = handle.fileDescriptor
+        _ = fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK)
+        source = DispatchSource.makeReadSource(fileDescriptor: fd,
+            queue: DispatchQueue(label: "VideoVault.ProcessPipe", qos: .utility))
+        group.enter()
+        source.setEventHandler { [weak self] in self?.readAvailable() }
+        source.setCancelHandler { [weak self] in
+            if let self {
+                if !self.pending.isEmpty { self.onLine?(String(decoding: self.pending, as: UTF8.self)) }
+                try? self.handle.close()
+            }
+            group.leave()
+        }
+        source.resume()
+    }
+
+    func cancel() { source.cancel() }
+
+    private func readAvailable() {
+        var bytes = [UInt8](repeating: 0, count: 65536)
+        for _ in 0..<16 {
+            guard !source.isCancelled else { return }
+            let count = Darwin.read(handle.fileDescriptor, &bytes, bytes.count)
+            if count == 0 { source.cancel(); return }
+            if count < 0 {
+                if errno == EINTR { continue }
+                if errno != EAGAIN && errno != EWOULDBLOCK { source.cancel() }
+                return
+            }
+            let data = Data(bytes.prefix(count))
+            onData()
+            capture.append(data)
+            if let onLine {
+                pending.append(data)
+                while let end = pending.firstIndex(of: 10) {
+                    onLine(String(decoding: pending.prefix(upTo: end), as: UTF8.self))
+                    pending.removeSubrange(...end)
+                }
+                if pending.count > 1024 * 1024 { pending.removeAll() }
+            }
+        }
     }
 }
 

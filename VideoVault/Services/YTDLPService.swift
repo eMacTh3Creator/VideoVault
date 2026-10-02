@@ -1,6 +1,6 @@
 import Foundation
 
-struct VideoInfo: Decodable {
+struct VideoInfo: Decodable, Sendable {
     let title: String
     let durationSeconds: Double?
     let thumbnailURL: String?
@@ -20,11 +20,41 @@ struct VideoInfo: Decodable {
     }
 }
 
-struct DownloadResult {
+struct DownloadResult: Sendable {
     let file: URL
     let mediaID: String?
     let downloader: String
     let skipped: Bool
+}
+
+struct DownloadOptions: Sendable {
+    let root: URL
+    let ytdlpPath: String
+    let ffmpegPath: String
+    let streamlinkPath: String
+    let useBrowserCookies: Bool
+    let cookiesBrowser: String
+    let embedMetadata: Bool
+    let embedThumbnail: Bool
+    let skipDuplicates: Bool
+    let enableFallbackDownloader: Bool
+    let organizeBySource: Bool
+    let autoRetryFailed: Bool
+
+    @MainActor init(settings: AppSettings = .shared) {
+        root = settings.downloadURL.standardizedFileURL
+        ytdlpPath = settings.ytdlpPath
+        ffmpegPath = settings.ffmpegPath
+        streamlinkPath = settings.streamlinkPath
+        useBrowserCookies = settings.useBrowserCookies
+        cookiesBrowser = settings.cookiesBrowser
+        embedMetadata = settings.embedMetadata
+        embedThumbnail = settings.embedThumbnail
+        skipDuplicates = settings.skipDuplicates
+        enableFallbackDownloader = settings.enableFallbackDownloader
+        organizeBySource = settings.organizeBySource
+        autoRetryFailed = settings.autoRetryFailed
+    }
 }
 
 enum DownloadFailurePolicy {
@@ -78,21 +108,26 @@ final class YTDLPService {
         return process.terminationStatus == 0 ? String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines) : nil
     }
 
-    @MainActor private func commonArgs(cookies: Bool) -> [String] {
+    private static func commonArgs(cookies: Bool, options: DownloadOptions) -> [String] {
         var args = ["--ignore-config", "--no-playlist", "--socket-timeout", "20", "--retries", "3", "--fragment-retries", "3", "--no-colors"]
-        if cookies, settings.useBrowserCookies, !settings.cookiesBrowser.isEmpty { args += ["--cookies-from-browser", settings.cookiesBrowser] }
-        if isFFmpegInstalled() { args += ["--ffmpeg-location", settings.ffmpegPath] }
+        if cookies, options.useBrowserCookies, !options.cookiesBrowser.isEmpty { args += ["--cookies-from-browser", options.cookiesBrowser] }
+        if FileManager.default.isExecutableFile(atPath: options.ffmpegPath) { args += ["--ffmpeg-location", options.ffmpegPath] }
         if let deno = Self.findExecutable("deno") { args += ["--js-runtimes", "deno:\(deno)"] }
         else if let node = Self.findExecutable("node") { args += ["--js-runtimes", "node:\(node)"] }
         return args
     }
 
     @MainActor func fetchVideoInfo(url: String) async throws -> VideoInfo {
-        guard isYTDLPInstalled() else { throw YTDLPError.notInstalled }
+        let options = DownloadOptions()
+        return try await BackgroundWork.run { try await Self.fetchVideoInfo(url: url, options: options) }
+    }
+
+    static func fetchVideoInfo(url: String, options: DownloadOptions) async throws -> VideoInfo {
+        guard FileManager.default.isExecutableFile(atPath: options.ytdlpPath) else { throw YTDLPError.notInstalled }
         var lastError = "No metadata returned"
-        for cookies in (settings.useBrowserCookies ? [true, false] : [false]) {
-            let result = try await ProcessRunner().run(executable: settings.ytdlpPath,
-                arguments: ["--dump-single-json", "--skip-download"] + commonArgs(cookies: cookies) + ["--", url], timeout: 25)
+        for cookies in (options.useBrowserCookies ? [true, false] : [false]) {
+            let result = try await ProcessRunner().run(executable: options.ytdlpPath,
+                arguments: ["--dump-single-json", "--skip-download"] + commonArgs(cookies: cookies, options: options) + ["--", url], timeout: 25)
             if result.exitCode == 0, let data = result.output.data(using: .utf8), let info = try? JSONDecoder().decode(VideoInfo.self, from: data) { return info }
             lastError = result.message
             if DownloadFailurePolicy.isSiteRestriction(lastError) { break }
@@ -102,29 +137,38 @@ final class YTDLPService {
 
     @MainActor func download(url: String, format: DownloadFormat, outputDirectory: URL,
                   progressHandler: @escaping @Sendable (Double, String) -> Void) async throws -> DownloadResult {
-        guard isYTDLPInstalled() else { throw YTDLPError.notInstalled }
-        if format.isAudioOnly && !isFFmpegInstalled() { throw YTDLPError.downloadFailed("ffmpeg is required for audio extraction. Install it in Settings.") }
+        let options = DownloadOptions()
+        return try await BackgroundWork.run {
+            try await Self.download(url: url, format: format, outputDirectory: outputDirectory, options: options, progressHandler: progressHandler)
+        }
+    }
+
+    static func download(url: String, format: DownloadFormat, outputDirectory: URL, options: DownloadOptions,
+                         progressHandler: @escaping @Sendable (Double, String) -> Void) async throws -> DownloadResult {
+        guard FileManager.default.isExecutableFile(atPath: options.ytdlpPath) else { throw YTDLPError.notInstalled }
+        let hasFFmpeg = FileManager.default.isExecutableFile(atPath: options.ffmpegPath)
+        if format.isAudioOnly && !hasFFmpeg { throw YTDLPError.downloadFailed("ffmpeg is required for audio extraction. Install it in Settings.") }
         try FileManager.default.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
         var variants = format.ytdlpArgVariants
-        if !isFFmpegInstalled(), !format.isAudioOnly {
+        if !hasFFmpeg, !format.isAudioOnly {
             let selector = format.maxHeight.map { "best[height<=\($0)]/best" } ?? "best"
             variants = [["-f", selector]]
         }
         var lastMessage = "Download failed"
-        for cookies in (settings.useBrowserCookies ? [true, false] : [false]) {
+        for cookies in (options.useBrowserCookies ? [true, false] : [false]) {
             for variant in variants {
                 try Task.checkCancellation()
-                var args = commonArgs(cookies: cookies) + variant + [
+                var args = commonArgs(cookies: cookies, options: options) + variant + [
                     "-P", outputDirectory.path,
                     "-o", "%(title).160B [%(extractor_key)s-%(id)s] [\(format.storageKey)].%(ext)s",
                     "--newline", "--progress", "--progress-template", "download:__VV_PROGRESS__%(progress._percent_str)s",
                     "--print", "after_move:__VV_RESULT__%(.{filepath,id,extractor_key})j"
                 ]
-                args += settings.skipDuplicates ? ["--no-overwrites"] : ["--force-overwrites"]
-                if settings.embedMetadata { args += ["--embed-metadata"] }
-                if settings.embedThumbnail && !format.isAudioOnly { args += ["--embed-thumbnail"] }
+                args += options.skipDuplicates ? ["--no-overwrites"] : ["--force-overwrites"]
+                if options.embedMetadata { args += ["--embed-metadata"] }
+                if options.embedThumbnail && !format.isAudioOnly { args += ["--embed-thumbnail"] }
                 args += ["--", url]
-                let result = try await ProcessRunner().run(executable: settings.ytdlpPath, arguments: args,
+                let result = try await ProcessRunner().run(executable: options.ytdlpPath, arguments: args,
                     directory: outputDirectory, timeout: 180, inactivityTimeout: true) { line in
                     if line.hasPrefix("__VV_PROGRESS__") {
                         let value = line.dropFirst("__VV_PROGRESS__".count).replacingOccurrences(of: "%", with: "").trimmingCharacters(in: .whitespaces)
@@ -138,11 +182,11 @@ final class YTDLPService {
                 progressHandler(0, "Trying another available format")
             }
         }
-        if settings.enableFallbackDownloader {
+        if options.enableFallbackDownloader {
             progressHandler(0, "Trying fallback downloader")
             do {
                 return try await FallbackDownloader.download(url: url, format: format, directory: outputDirectory,
-                    streamlink: settings.streamlinkPath, ffmpeg: settings.ffmpegPath, progress: progressHandler)
+                    streamlink: options.streamlinkPath, ffmpeg: options.ffmpegPath, progress: progressHandler)
             } catch is CancellationError { throw CancellationError() }
             catch { lastMessage += "\n\nFallback: \(error.localizedDescription)" }
         }

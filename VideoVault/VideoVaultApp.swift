@@ -116,6 +116,7 @@ struct MainAppView: View {
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     var menuBar: MenuBarController?
+    private var waitingToTerminate = false
     func applicationDidFinishLaunching(_ notification: Notification) {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
         StorageManager.shared.ensureDownloadDirectory()
@@ -131,6 +132,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) { DownloadManager.shared.cancelAllDownloads() }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard !waitingToTerminate else { return .terminateLater }
+        waitingToTerminate = true
+        DownloadManager.shared.cancelAllDownloads()
+        Task {
+            await DownloadManager.shared.stopAndWait()
+            await DownloadQueue.shared.flushPersistence()
+            if waitingToTerminate { waitingToTerminate = false; sender.reply(toApplicationShouldTerminate: true) }
+        }
+        Task {
+            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            if waitingToTerminate { waitingToTerminate = false; sender.reply(toApplicationShouldTerminate: true) }
+        }
+        return .terminateLater
+    }
 }
 
 struct WindowActionsBridge: View {

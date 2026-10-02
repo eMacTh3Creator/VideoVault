@@ -158,7 +158,7 @@ final class DownloadIntegrationTests: XCTestCase {
         }
     }
 
-    func testQueueRecoversInterruptedDownloadsWithoutLosingHistory() throws {
+    @MainActor func testQueueRecoversInterruptedDownloadsWithoutLosingHistory() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("VideoVaultQueue-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }

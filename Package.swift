@@ -11,6 +11,7 @@ let package = Package(
                       "Services/FallbackDownloader.swift", "Services/YTDLPService.swift", "Services/DownloadManager.swift",
                       "Services/DependencyUpdateService.swift", "Services/StorageManager.swift",
                       "Services/MenuBarController.swift"]),
-        .testTarget(name: "VideoVaultCoreTests", dependencies: ["VideoVaultCore"], path: "Tests")
+        .testTarget(name: "VideoVaultCoreTests", dependencies: ["VideoVaultCore"], path: "Tests",
+                    resources: [.copy("Fixtures")])
     ]
 )

@@ -1,6 +1,6 @@
 import Foundation
 
-enum DownloadStatus: Equatable, Codable {
+enum DownloadStatus: Equatable, Codable, Sendable {
     case queued
     case fetching
     case downloading(progress: Double)
@@ -64,7 +64,7 @@ enum DownloadStatus: Equatable, Codable {
     }
 }
 
-enum DownloadFormat: String, Codable, CaseIterable, Identifiable {
+enum DownloadFormat: String, Codable, CaseIterable, Identifiable, Sendable {
     case mp3 = "MP3 Audio"
     case bestAudio = "Best Audio (M4A)"
     case video720p = "720p Video"
@@ -156,7 +156,7 @@ enum DownloadFormat: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-struct DownloadItem: Identifiable, Codable, Equatable, Hashable {
+struct DownloadItem: Identifiable, Codable, Equatable, Hashable, Sendable {
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
@@ -208,6 +208,14 @@ struct DownloadItem: Identifiable, Codable, Equatable, Hashable {
         lhs.title == rhs.title &&
         lhs.filePath == rhs.filePath &&
         lhs.fileSize == rhs.fileSize &&
-        lhs.errorMessage == rhs.errorMessage
+        lhs.errorMessage == rhs.errorMessage &&
+        lhs.thumbnailURL == rhs.thumbnailURL &&
+        lhs.duration == rhs.duration &&
+        lhs.source == rhs.source &&
+        lhs.mediaID == rhs.mediaID &&
+        lhs.downloader == rhs.downloader &&
+        lhs.retryCount == rhs.retryCount &&
+        lhs.dateCompleted == rhs.dateCompleted &&
+        lhs.url == rhs.url && lhs.format == rhs.format
     }
 }

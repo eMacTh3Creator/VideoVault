@@ -23,4 +23,5 @@ ditto -c -k --sequesterRsrc --keepParent "$TEST_ROOT/server/VideoVault.app" "$TE
     --download-url-prefix "http://127.0.0.1:$PORT/" "$TEST_ROOT/server"
 "$SPARKLE/sign_update" --account videovault --verify "$TEST_ROOT/server/appcast.xml"
 echo "Serve $TEST_ROOT/server on 127.0.0.1:$PORT, then launch the installed copy and choose Check for Updates."
-echo 'After Install and Relaunch, confirm the installed copy has CFBundleVersion 3.'
+BUILD_VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Contents/Info.plist")
+echo "After Install and Relaunch, confirm the installed copy has CFBundleVersion $BUILD_VERSION."
