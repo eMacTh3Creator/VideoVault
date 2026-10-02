@@ -45,7 +45,7 @@ struct DownloadDetailView: View {
                         .background(.white.opacity(0.2))
                         .cornerRadius(6)
 
-                    Text(item.format.rawValue)
+                    Text(item.format.displayName)
                         .font(.caption)
                         .fontWeight(.medium)
                 }
@@ -118,7 +118,7 @@ struct DownloadDetailView: View {
 
     private var statusColor: Color {
         switch item.status {
-        case .completed: return .green
+        case .completed, .skipped: return .green
         case .error: return .red
         case .downloading, .fetching: return .accentColor
         case .converting: return .purple
@@ -149,7 +149,8 @@ struct DownloadDetailView: View {
                 InfoCell(label: "Duration", value: duration)
             }
 
-            InfoCell(label: "Format", value: item.format.rawValue)
+            InfoCell(label: "Format", value: item.format.displayName)
+            if let downloader = item.downloader { InfoCell(label: "Downloader", value: downloader) }
 
             if let size = item.fileSize {
                 InfoCell(label: "File Size", value: StorageManager.shared.formatBytes(size))
@@ -175,7 +176,7 @@ struct DownloadDetailView: View {
                 .font(.headline)
 
             HStack(spacing: 12) {
-                if case .completed = item.status, let path = item.filePath {
+                if (item.status == .completed || item.status == .skipped), let path = item.filePath {
                     Button(action: { StorageManager.shared.openInFinder(path: path) }) {
                         Label("Show in Finder", systemImage: "folder")
                     }
@@ -215,7 +216,8 @@ struct DownloadDetailView: View {
                 Spacer()
 
                 Button(role: .destructive, action: {
-                    if let path = item.filePath {
+                    if item.status.isActive { manager.cancelDownload(item) }
+                    if item.status != .skipped, let path = item.filePath {
                         StorageManager.shared.deleteFile(at: path)
                     }
                     queue.removeItem(item)

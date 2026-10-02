@@ -67,6 +67,19 @@ class AppSettings: ObservableObject {
         didSet { UserDefaults.standard.set(ffmpegPath, forKey: "ffmpegPath") }
     }
 
+    @Published var automaticallyUpdateYTDLP: Bool {
+        didSet { UserDefaults.standard.set(automaticallyUpdateYTDLP, forKey: "automaticallyUpdateYTDLP") }
+    }
+    @Published var skipDuplicates: Bool {
+        didSet { UserDefaults.standard.set(skipDuplicates, forKey: "skipDuplicates") }
+    }
+    @Published var enableFallbackDownloader: Bool {
+        didSet { UserDefaults.standard.set(enableFallbackDownloader, forKey: "enableFallbackDownloader") }
+    }
+    @Published var streamlinkPath: String {
+        didSet { UserDefaults.standard.set(streamlinkPath, forKey: "streamlinkPath") }
+    }
+
     private init() {
         let defaults = UserDefaults.standard
 
@@ -87,6 +100,10 @@ class AppSettings: ObservableObject {
         self.useBrowserCookies = defaults.object(forKey: "useBrowserCookies") as? Bool ?? false
         self.cookiesBrowser = defaults.string(forKey: "cookiesBrowser") ?? "safari"
         self.ffmpegPath = defaults.string(forKey: "ffmpegPath") ?? "/opt/homebrew/bin/ffmpeg"
+        self.automaticallyUpdateYTDLP = defaults.object(forKey: "automaticallyUpdateYTDLP") as? Bool ?? true
+        self.skipDuplicates = defaults.object(forKey: "skipDuplicates") as? Bool ?? true
+        self.enableFallbackDownloader = defaults.object(forKey: "enableFallbackDownloader") as? Bool ?? true
+        self.streamlinkPath = defaults.string(forKey: "streamlinkPath") ?? "/opt/homebrew/bin/streamlink"
     }
 
     var downloadURL: URL {
@@ -95,7 +112,8 @@ class AppSettings: ObservableObject {
 
     func sourceDirectory(for source: String) -> URL {
         if organizeBySource {
-            return downloadURL.appendingPathComponent(source)
+            let safeSource = source.components(separatedBy: CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_")).inverted).joined(separator: "_")
+            return downloadURL.appendingPathComponent(safeSource.isEmpty ? "Unknown" : safeSource)
         }
         return downloadURL
     }

@@ -7,6 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+        A10019 = {isa = PBXBuildFile; fileRef = B10019; };
+        A10020 = {isa = PBXBuildFile; fileRef = B10020; };
+        A10021 = {isa = PBXBuildFile; fileRef = B10021; };
+        A10022 = {isa = PBXBuildFile; fileRef = B10022; };
+        A10023 = {isa = PBXBuildFile; fileRef = B10023; };
+        A10024 = {isa = PBXBuildFile; fileRef = B10024; };
+        A10025 = {isa = PBXBuildFile; fileRef = B10025; };
+        A10026 = {isa = PBXBuildFile; productRef = H10002; };
 		A10001 /* VideoVaultApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10001; };
 		A10002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002; };
 		A10003 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10003; };
@@ -26,6 +34,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+        B10019 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessRunner.swift; sourceTree = "<group>"; };
+        B10020 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuplicateLibrary.swift; sourceTree = "<group>"; };
+        B10021 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FallbackDownloader.swift; sourceTree = "<group>"; };
+        B10022 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DependencyUpdateService.swift; sourceTree = "<group>"; };
+        B10023 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarController.swift; sourceTree = "<group>"; };
+        B10024 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdateService.swift; sourceTree = "<group>"; };
+        B10025 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuplicateFinderView.swift; sourceTree = "<group>"; };
 		B10001 /* VideoVaultApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoVaultApp.swift; sourceTree = "<group>"; };
 		B10002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		B10003 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
@@ -51,6 +66,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+                A10026 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -92,6 +108,12 @@
 		D10004 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+                B10019,
+                B10020,
+                B10021,
+                B10022,
+                B10023,
+                B10024,
 				B10012 /* YTDLPService.swift */,
 				B10013 /* DownloadManager.swift */,
 				B10014 /* StorageManager.swift */,
@@ -102,6 +124,7 @@
 		D10005 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+                B10025,
 				B10002 /* ContentView.swift */,
 				B10003 /* SidebarView.swift */,
 				B10004 /* DownloadDetailView.swift */,
@@ -145,6 +168,7 @@
 			dependencies = (
 			);
 			name = VideoVault;
+            packageProductDependencies = (H10002,);
 			productName = VideoVault;
 			productReference = B10018 /* VideoVault.app */;
 			productType = "com.apple.product-type.application";
@@ -173,6 +197,7 @@
 				Base,
 			);
 			mainGroup = D10001;
+            packageReferences = (H10001,);
 			productRefGroup = D10008 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -198,6 +223,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+                A10019,
+                A10020,
+                A10021,
+                A10022,
+                A10023,
+                A10024,
+                A10025,
 				A10001 /* VideoVaultApp.swift in Sources */,
 				A10002 /* ContentView.swift in Sources */,
 				A10003 /* SidebarView.swift in Sources */,
@@ -344,7 +376,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = NO;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -355,7 +387,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.2;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.videovault.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -372,7 +404,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = NO;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -383,7 +415,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.2;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.videovault.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -413,6 +445,12 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+        H10001 = {
+            isa = XCRemoteSwiftPackageReference;
+            repositoryURL = "https://github.com/sparkle-project/Sparkle";
+            requirement = { kind = exactVersion; version = 2.10.0; };
+        };
+        H10002 = { isa = XCSwiftPackageProductDependency; package = H10001; productName = Sparkle; };
 
 	};
 	rootObject = F10001 /* Project object */;

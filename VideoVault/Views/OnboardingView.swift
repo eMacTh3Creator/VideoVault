@@ -237,80 +237,13 @@ struct OnboardingView: View {
     private func installYTDLP() {
         isInstalling = true
         installError = nil
-        installStatus = "Downloading yt-dlp..."
-
-        let installDir = NSHomeDirectory() + "/.local/bin"
-        let installPath = installDir + "/yt-dlp"
-        let downloadURL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos"
-
-        DispatchQueue.global(qos: .userInitiated).async {
-            do {
-                try FileManager.default.createDirectory(
-                    atPath: installDir,
-                    withIntermediateDirectories: true
-                )
-
-                guard let url = URL(string: downloadURL) else {
-                    throw InstallError.invalidURL
-                }
-
-                let semaphore = DispatchSemaphore(value: 0)
-                var downloadedData: Data?
-                var downloadError: Error?
-
-                let task = URLSession.shared.dataTask(with: url) { data, response, error in
-                    if let error = error {
-                        downloadError = error
-                    } else if let httpResponse = response as? HTTPURLResponse,
-                              httpResponse.statusCode != 200 {
-                        downloadError = InstallError.httpError(httpResponse.statusCode)
-                    } else {
-                        downloadedData = data
-                    }
-                    semaphore.signal()
-                }
-                task.resume()
-
-                let result = semaphore.wait(timeout: .now() + 60)
-                if result == .timedOut {
-                    task.cancel()
-                    throw InstallError.timeout
-                }
-
-                if let error = downloadError { throw error }
-
-                guard let data = downloadedData, !data.isEmpty else {
-                    throw InstallError.emptyDownload
-                }
-
-                DispatchQueue.main.async {
-                    installStatus = "Installing..."
-                }
-
-                try data.write(to: URL(fileURLWithPath: installPath), options: .atomic)
-
-                let attrs: [FileAttributeKey: Any] = [.posixPermissions: 0o755]
-                try FileManager.default.setAttributes(attrs, ofItemAtPath: installPath)
-
-                guard FileManager.default.isExecutableFile(atPath: installPath) else {
-                    throw InstallError.notExecutable
-                }
-
-                DispatchQueue.main.async {
-                    settings.ytdlpPath = installPath
-                    detectedPath = installPath
-                    ytdlpFound = true
-                    isInstalling = false
-                    installStatus = nil
-                }
-
-            } catch {
-                DispatchQueue.main.async {
-                    isInstalling = false
-                    installError = "Install failed: \(error.localizedDescription)"
-                    installStatus = nil
-                }
-            }
+        installStatus = "Checking official yt-dlp release..."
+        Task { @MainActor in
+            await DependencyUpdateService.shared.checkAndUpdate(install: true)
+            checkYTDLP()
+            isInstalling = false
+            installStatus = nil
+            if !ytdlpFound { installError = DependencyUpdateService.shared.status }
         }
     }
 

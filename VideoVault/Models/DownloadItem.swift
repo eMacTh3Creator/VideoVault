@@ -6,6 +6,7 @@ enum DownloadStatus: Equatable, Codable {
     case downloading(progress: Double)
     case converting
     case completed
+    case skipped
     case error(String)
     case cancelled
 
@@ -16,6 +17,7 @@ enum DownloadStatus: Equatable, Codable {
         case .downloading(let progress): return "Downloading \(Int(progress * 100))%"
         case .converting: return "Converting"
         case .completed: return "Completed"
+        case .skipped: return "Skipped Duplicate"
         case .error(let msg): return "Error: \(msg)"
         case .cancelled: return "Cancelled"
         }
@@ -30,7 +32,7 @@ enum DownloadStatus: Equatable, Codable {
 
     var isFinished: Bool {
         switch self {
-        case .completed, .error, .cancelled: return true
+        case .completed, .skipped, .error, .cancelled: return true
         default: return false
         }
     }
@@ -42,6 +44,7 @@ enum DownloadStatus: Equatable, Codable {
         case .downloading: return "arrow.down.circle"
         case .converting: return "wand.and.stars"
         case .completed: return "checkmark.circle.fill"
+        case .skipped: return "doc.on.doc.fill"
         case .error: return "exclamationmark.triangle.fill"
         case .cancelled: return "xmark.circle"
         }
@@ -54,6 +57,7 @@ enum DownloadStatus: Equatable, Codable {
         case .downloading: return "accentColor"
         case .converting: return "purple"
         case .completed: return "green"
+        case .skipped: return "green"
         case .error: return "red"
         case .cancelled: return "gray"
         }
@@ -70,6 +74,29 @@ enum DownloadFormat: String, Codable, CaseIterable, Identifiable {
     case bestVideo = "Best Quality Video"
 
     var id: String { rawValue }
+    var displayName: String { self == .bestAudio ? "Best Audio (Original Quality)" : rawValue }
+
+    var storageKey: String {
+        switch self {
+        case .mp3: return "mp3"
+        case .bestAudio: return "audio"
+        case .video720p: return "720p"
+        case .video1080p: return "1080p"
+        case .video1440p: return "1440p"
+        case .video4k: return "2160p"
+        case .bestVideo: return "best"
+        }
+    }
+
+    var maxHeight: Int? {
+        switch self {
+        case .video720p: return 720
+        case .video1080p: return 1080
+        case .video1440p: return 1440
+        case .video4k: return 2160
+        default: return nil
+        }
+    }
 
     var isAudioOnly: Bool {
         switch self {
@@ -95,7 +122,7 @@ enum DownloadFormat: String, Codable, CaseIterable, Identifiable {
         case .mp3:
             return [["-x", "--audio-format", "mp3", "--audio-quality", "0"]]
         case .bestAudio:
-            return [["-x", "--audio-format", "m4a", "--audio-quality", "0"]]
+            return [["-f", "bestaudio/best", "-x", "--audio-format", "best", "--audio-quality", "0"]]
         case .video720p:
             return videoArgVariants(maxHeight: 720)
         case .video1080p:
@@ -106,7 +133,7 @@ enum DownloadFormat: String, Codable, CaseIterable, Identifiable {
             return videoArgVariants(maxHeight: 2160)
         case .bestVideo:
             return [
-                ["-f", "bestvideo+bestaudio", "--merge-output-format", "mp4"],
+                ["-f", "bestvideo*+bestaudio/best", "--merge-output-format", "mkv"],
                 ["-f", "best", "--merge-output-format", "mp4"]
             ]
         }
@@ -121,7 +148,7 @@ enum DownloadFormat: String, Codable, CaseIterable, Identifiable {
 
     private func videoArgVariants(maxHeight: Int) -> [[String]] {
         [
-            ["-f", "bestvideo[height<=\(maxHeight)]+bestaudio", "--merge-output-format", "mp4"],
+            ["-f", "bestvideo*[height<=\(maxHeight)]+bestaudio/best[height<=\(maxHeight)]", "--merge-output-format", "mkv"],
             ["-f", "best[height<=\(maxHeight)]", "--merge-output-format", "mp4"],
             ["-f", "bestvideo+bestaudio", "--merge-output-format", "mp4"],
             ["-f", "best", "--merge-output-format", "mp4"]
@@ -148,6 +175,9 @@ struct DownloadItem: Identifiable, Codable, Equatable, Hashable {
     var dateAdded: Date
     var dateCompleted: Date?
     var errorMessage: String?
+    var mediaID: String?
+    var downloader: String?
+    var retryCount: Int?
 
     init(url: String, format: DownloadFormat) {
         self.id = UUID()

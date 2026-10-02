@@ -6,21 +6,28 @@ struct VideoVaultApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
-        WindowGroup {
+        Window("VideoVault", id: "main") {
             RootView()
+                .background(WindowActionsBridge())
         }
         .windowStyle(.titleBar)
         .defaultSize(width: 900, height: 600)
         .commands {
+            CommandGroup(after: .appInfo) {
+                CheckAppUpdatesButton()
+            }
             CommandGroup(replacing: .newItem) {
                 Button("Add Downloads...") {
-                    NotificationCenter.default.post(name: .showAddDownloads, object: nil)
+                    MenuBarController.shared.showWindow(notification: .showAddDownloads)
                 }
                 .keyboardShortcut("n", modifiers: .command)
             }
 
             CommandGroup(after: .newItem) {
                 Divider()
+                Button("Home") { MenuBarController.shared.showWindow(notification: .showHome) }
+                    .keyboardShortcut("h", modifiers: [.command, .shift])
+                Button("Find Duplicates...") { MenuBarController.shared.showWindow(notification: .showDuplicates) }
                 Button("Open Download Folder") {
                     StorageManager.shared.openDownloadFolder()
                 }
@@ -104,22 +111,40 @@ struct MainAppView: View {
     }
 }
 
-// MARK: - Notification Names
-
-extension Notification.Name {
-    static let showAddDownloads = Notification.Name("showAddDownloads")
-    static let showSettings = Notification.Name("showSettings")
-}
-
 // MARK: - App Delegate
 
+@MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
+    var menuBar: MenuBarController?
     func applicationDidFinishLaunching(_ notification: Notification) {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
         StorageManager.shared.ensureDownloadDirectory()
+        menuBar = MenuBarController.shared
+        menuBar?.checkForAppUpdates = { AppUpdateService.shared.checkForUpdates() }
+        AppUpdateService.shared.start()
+        DependencyUpdateService.shared.startAutomaticChecks()
+        DownloadManager.shared.processQueue()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        return true
+        return !AppSettings.shared.showInMenuBar && !DownloadManager.shared.isProcessing
+    }
+
+    func applicationWillTerminate(_ notification: Notification) { DownloadManager.shared.cancelAllDownloads() }
+}
+
+struct WindowActionsBridge: View {
+    @Environment(\.openWindow) private var openWindow
+    var body: some View {
+        Color.clear.frame(width: 0, height: 0).onAppear {
+            MenuBarController.shared.openWindow = { openWindow(id: "main") }
+        }
+    }
+}
+
+struct CheckAppUpdatesButton: View {
+    @ObservedObject private var updater = AppUpdateService.shared
+    var body: some View {
+        Button("Check for Updates...") { updater.checkForUpdates() }.disabled(!updater.canCheckForUpdates)
     }
 }

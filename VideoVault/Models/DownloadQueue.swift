@@ -8,12 +8,16 @@ class DownloadQueue: ObservableObject {
 
     private let saveURL: URL
 
-    private init() {
+    init(saveURL: URL? = nil) {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let appDir = appSupport.appendingPathComponent("VideoVault")
+        let appDir = saveURL?.deletingLastPathComponent()
+            ?? ProcessInfo.processInfo.environment["VIDEOVAULT_TEST_ROOT"].map { URL(fileURLWithPath: $0) }
+            ?? appSupport.appendingPathComponent("VideoVault")
         try? FileManager.default.createDirectory(at: appDir, withIntermediateDirectories: true)
-        self.saveURL = appDir.appendingPathComponent("download_queue.json")
+        self.saveURL = saveURL ?? appDir.appendingPathComponent("download_queue.json")
         self.items = loadItems()
+        for index in items.indices where items[index].status.isActive { items[index].status = .queued }
+        save()
     }
 
     // MARK: - Query
@@ -27,7 +31,7 @@ class DownloadQueue: ObservableObject {
     }
 
     var completedItems: [DownloadItem] {
-        items.filter { if case .completed = $0.status { return true }; return false }
+        items.filter { $0.status == .completed || $0.status == .skipped }
     }
 
     var failedItems: [DownloadItem] {
@@ -70,12 +74,12 @@ class DownloadQueue: ObservableObject {
     }
 
     func clearCompleted() {
-        items.removeAll { $0.status == .completed }
+        items.removeAll { $0.status == .completed || $0.status == .skipped }
         save()
     }
 
     func clearAll() {
-        items.removeAll()
+        items.removeAll { !$0.status.isActive }
         save()
     }
 

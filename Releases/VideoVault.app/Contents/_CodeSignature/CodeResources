@@ -10,11 +10,20 @@
 		</data>
 		<key>Resources/Assets.car</key>
 		<data>
-		fyMRSAqkETr+cs7T/TfRVLxK2Do=
+		Pna/U0RkzQxDmQftO99OuxCw/Xg=
 		</data>
 	</dict>
 	<key>files2</key>
 	<dict>
+		<key>Frameworks/Sparkle.framework</key>
+		<dict>
+			<key>cdhash</key>
+			<data>
+			Utm6I2T82m33LLt02c1yWkeJQr4=
+			</data>
+			<key>requirement</key>
+			<string>cdhash H"52d9ba2364fcda6df72cbb74d9cd725a478942be" or cdhash H"c25635ba3b3440cba04bb268d6695756cc913da8"</string>
+		</dict>
 		<key>Resources/AppIcon.icns</key>
 		<dict>
 			<key>hash2</key>
@@ -26,7 +35,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			17t1jdjkSPDXGqEpsO9VXm1c1Y8zrlhZfpT7KnPesGw=
+			wAbcODTj5e6oXna+w4vuzGKghqnKgm8cMK4XecsvHjQ=
 			</data>
 		</dict>
 	</dict>

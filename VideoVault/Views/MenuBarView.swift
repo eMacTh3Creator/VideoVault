@@ -123,7 +123,7 @@ struct MenuBarView: View {
 
     private func iconColor(for status: DownloadStatus) -> Color {
         switch status {
-        case .completed: return .green
+        case .completed, .skipped: return .green
         case .error: return .red
         case .downloading, .fetching: return .accentColor
         case .converting: return .purple

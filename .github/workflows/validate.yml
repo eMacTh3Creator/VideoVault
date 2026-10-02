@@ -1,0 +1,18 @@
+name: Validate macOS
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  test-and-build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install download tools
+        run: brew install yt-dlp ffmpeg
+      - name: Core and download integration tests
+        run: VIDEOVAULT_TEST_ROOT="$RUNNER_TEMP/VideoVault-tests" swift test
+      - name: Universal release build
+        run: xcodebuild -quiet -project VideoVault.xcodeproj -scheme VideoVault -configuration Release -destination 'generic/platform=macOS' -derivedDataPath "$RUNNER_TEMP/VideoVault-build" 'ARCHS=arm64 x86_64' ONLY_ACTIVE_ARCH=NO CODE_SIGN_IDENTITY=- build
+      - name: Validate bundle
+        run: codesign --verify --deep --strict "$RUNNER_TEMP/VideoVault-build/Build/Products/Release/VideoVault.app"

@@ -14,17 +14,14 @@ struct AddDownloadsView: View {
     }
 
     private var parsedURLs: [String] {
-        urlText
-            .components(separatedBy: .newlines)
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty && ($0.hasPrefix("http://") || $0.hasPrefix("https://")) }
+        DownloadManager.urls(from: urlText)
     }
 
     private var invalidLines: [String] {
         urlText
             .components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty && !$0.hasPrefix("http://") && !$0.hasPrefix("https://") }
+            .filter { !$0.isEmpty && DownloadManager.urls(from: $0).isEmpty }
     }
 
     var body: some View {
@@ -202,7 +199,7 @@ struct FormatButton: View {
                     .font(.caption)
                     .frame(width: 14)
 
-                Text(format.rawValue)
+                Text(format.displayName)
                     .font(.system(size: 12))
                     .foregroundColor(isSelected ? .primary : .secondary)
 

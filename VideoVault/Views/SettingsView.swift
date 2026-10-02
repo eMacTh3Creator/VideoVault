@@ -8,6 +8,8 @@ struct SettingsView: View {
     @State private var ytdlpFound: Bool = false
     @State private var ffmpegFound: Bool = false
     @State private var storageSize: String = "Calculating..."
+    @ObservedObject private var dependencies = DependencyUpdateService.shared
+    @ObservedObject private var appUpdater = AppUpdateService.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -41,6 +43,8 @@ struct SettingsView: View {
 
                         Toggle("Organize by source site", isOn: $settings.organizeBySource)
                             .font(.subheadline)
+                        Toggle("Skip files already downloaded to this destination", isOn: $settings.skipDuplicates)
+                            .font(.subheadline)
 
                         HStack {
                             Text("Storage used: \(storageSize)")
@@ -60,7 +64,7 @@ struct SettingsView: View {
                     settingsSection("Default Format", icon: "film") {
                         Picker("Default download format", selection: $settings.defaultFormat) {
                             ForEach(DownloadFormat.allCases) { format in
-                                Text(format.rawValue).tag(format)
+                                Text(format.displayName).tag(format)
                             }
                         }
                         .labelsHidden()
@@ -126,6 +130,14 @@ struct SettingsView: View {
                         }
                     }
 
+                    settingsSection("App Updates", icon: "arrow.triangle.2.circlepath") {
+                        Text("VideoVault \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")")
+                        Toggle("Automatically check for app updates", isOn: $appUpdater.automaticallyChecks)
+                        Toggle("Automatically download and install app updates", isOn: $appUpdater.automaticallyInstalls)
+                        Button("Check for App Updates...") { appUpdater.checkForUpdates() }
+                            .disabled(!appUpdater.canCheckForUpdates)
+                    }
+
                     // yt-dlp
                     settingsSection("yt-dlp", icon: "terminal") {
                         HStack {
@@ -155,6 +167,33 @@ struct SettingsView: View {
                                     .font(.caption)
                                     .foregroundColor(.orange)
                             }
+                        }
+                        Toggle("Automatically check and update yt-dlp", isOn: $settings.automaticallyUpdateYTDLP)
+                        HStack {
+                            Button("Check for Update") { Task { await dependencies.checkAndUpdate(install: false); checkYTDLP() } }
+                            Button(ytdlpFound ? "Update Now" : "Install yt-dlp") { Task { await dependencies.checkAndUpdate(install: true); checkYTDLP() } }
+                        }.disabled(dependencies.isBusy)
+                        if !dependencies.status.isEmpty {
+                            Text(dependencies.status).font(.caption).foregroundColor(.secondary).textSelection(.enabled)
+                        }
+                    }
+
+                    settingsSection("Fallback Downloader", icon: "arrow.triangle.branch") {
+                        Toggle("Try another downloader after technical failures", isOn: $settings.enableFallbackDownloader)
+                        TextField("Streamlink path", text: $settings.streamlinkPath).textFieldStyle(.roundedBorder)
+                        HStack {
+                            Button("Detect Streamlink") {
+                                if let path = YTDLPService.findExecutable("streamlink") { settings.streamlinkPath = path }
+                            }
+                            Button("Install / Update Streamlink") { Task { await dependencies.installStreamlink() } }
+                                .disabled(dependencies.isBusy)
+                        }
+                        Text("Streamlink supports a subset of sites. Direct media links can also fall back to ffmpeg. Site restrictions are shown with their original error.")
+                            .font(.caption).foregroundColor(.secondary)
+                        if YTDLPService.findExecutable("deno") == nil && YTDLPService.findExecutable("node") == nil {
+                            Button("Install YouTube JavaScript Runtime") {
+                                Task { await dependencies.checkAndUpdate(install: true) }
+                            }.disabled(dependencies.isBusy)
                         }
                     }
 

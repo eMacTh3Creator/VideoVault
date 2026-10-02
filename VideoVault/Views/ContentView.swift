@@ -8,6 +8,7 @@ struct ContentView: View {
     @State private var selectedItem: DownloadItem?
     @State private var showAddSheet = false
     @State private var showSettings = false
+    @State private var showDuplicates = false
     @State private var filterStatus: FilterOption = .all
 
     enum FilterOption: String, CaseIterable {
@@ -54,6 +55,11 @@ struct ContentView: View {
             SettingsView()
                 .environmentObject(settings)
         }
+        .sheet(isPresented: $showDuplicates) { DuplicateFinderView() }
+        .onAppear { MenuBarController.shared.windowDidAppear() }
+        .onDisappear { MenuBarController.shared.windowDidDisappear() }
+        .onReceive(NotificationCenter.default.publisher(for: .showHome)) { _ in selectedItem = nil; filterStatus = .all }
+        .onReceive(NotificationCenter.default.publisher(for: .showDuplicates)) { _ in showDuplicates = true }
         .onReceive(NotificationCenter.default.publisher(for: .showAddDownloads)) { _ in
             showAddSheet = true
         }
@@ -75,6 +81,12 @@ struct ContentView: View {
         }
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
+                Button { selectedItem = nil; filterStatus = .all } label: {
+                    Label("Home", systemImage: "house")
+                }
+                .help("Return to Home")
+                Button { showDuplicates = true } label: { Label("Find Duplicates", systemImage: "doc.on.doc") }
+                    .help("Find identical files in your download folder")
                 Button(action: { showAddSheet = true }) {
                     Label("Add URLs", systemImage: "plus")
                 }

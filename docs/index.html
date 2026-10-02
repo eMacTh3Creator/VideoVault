@@ -730,12 +730,12 @@
           <article class="feature">
             <span class="eyebrow">YouTube</span>
             <h3>Handles the messy parts.</h3>
-            <p>Browser cookies, realistic user-agent headers, extractor arguments, and ffmpeg integration help VideoVault survive common YouTube edge cases.</p>
+            <p>Automatic verified yt-dlp updates, JavaScript runtime setup, browser cookies, and ffmpeg integration keep the extraction tools ready for changing sites.</p>
           </article>
           <article class="feature">
-            <span class="eyebrow">Metadata</span>
-            <h3>Save more than just the file.</h3>
-            <p>Optionally embed thumbnails, titles, and uploader metadata into completed downloads when the format supports it.</p>
+            <span class="eyebrow">Duplicates</span>
+            <h3>Keep one good copy.</h3>
+            <p>Skip indexed repeat downloads and find exact-content duplicates throughout your destination folder. Safely move selected extra copies to Trash.</p>
           </article>
           <article class="feature">
             <span class="eyebrow">Organization</span>
@@ -745,7 +745,7 @@
           <article class="feature">
             <span class="eyebrow">Native</span>
             <h3>Designed for macOS first.</h3>
-            <p>SwiftUI split-view layout, notifications, onboarding, settings sheets, and Finder-friendly actions make it feel like a real desktop app.</p>
+            <p>A Home button and live menu bar counts keep you in control. Quick paste best video or original-quality audio without bringing the window forward.</p>
           </article>
         </div>
       </div>
@@ -757,7 +757,7 @@
           <h3>Format options</h3>
           <ul class="stack">
             <li><strong>MP3 Audio</strong><br>Extract audio and convert it with ffmpeg.</li>
-            <li><strong>Best Audio (M4A)</strong><br>Keep the best available audio track without forcing MP3.</li>
+            <li><strong>Best Audio (Original Quality)</strong><br>Keep the best available original audio track without forced lossy conversion.</li>
             <li><strong>720p / 1080p / 1440p / 4K Video</strong><br>Ask for a ceiling and let VideoVault fall back safely when needed.</li>
             <li><strong>Best Quality Video</strong><br>Grab the highest quality path the source exposes.</li>
           </ul>
@@ -793,10 +793,10 @@ yt-dlp supported-sites matrix.</code></pre>
           </div>
 
           <ul class="release-list">
-            <li><strong>v1.2</strong><br>Improved YouTube format fallback behavior, fixed app icon packaging, and published downloadable release assets.</li>
-            <li><strong>Smart format retry</strong><br>Requested video qualities now step through safer fallback selectors instead of failing immediately.</li>
-            <li><strong>Bundle assets fixed</strong><br>The macOS app icon now packages correctly for Finder, Dock, and the downloadable zip.</li>
-            <li><strong>Windows port started</strong><br>A native WPF scaffold now exists in the repo for future Windows development.</li>
+            <li><strong>v1.3</strong><br>Universal Intel and Apple Silicon build with verified tool updates, duplicate protection, and independent fallback downloads.</li>
+            <li><strong>Signed app updates</strong><br>Sparkle checks and installs future releases. Install v1.3 manually once if you are upgrading from v1.2.</li>
+            <li><strong>Home and menu bar</strong><br>Return home without deleting items. See live counts and quick paste video or audio from the menu bar.</li>
+            <li><strong>Clear failure handling</strong><br>Timeouts prevent stuck info lookups; retries and supported fallbacks handle technical failures without bypassing website restrictions.</li>
           </ul>
         </div>
       </div>
@@ -842,14 +842,14 @@ yt-dlp supported-sites matrix.</code></pre>
       <div class="shell split">
         <div class="panel">
           <h3>Windows port in progress</h3>
-          <p style="margin:0;color:var(--muted);line-height:1.7;">A native Windows scaffold now lives in the repository as a <strong>C# / .NET 8 / WPF</strong> solution. The Mac app is still the primary release, but the repo now includes an early Windows project structure for future development.</p>
+          <p style="margin:0;color:var(--muted);line-height:1.7;">A native Windows port using <strong>C# / .NET / WPF</strong> is planned separately. Version 1.3 is a macOS release; no Windows binary is included.</p>
         </div>
         <div class="panel">
           <h3>Repository links</h3>
           <ul class="stack">
             <li><strong>Source repository</strong><br><a href="https://github.com/eMacTh3Creator/VideoVault">github.com/eMacTh3Creator/VideoVault</a></li>
             <li><strong>README and app docs</strong><br><a href="https://github.com/eMacTh3Creator/VideoVault/blob/main/README.md">View the project README</a></li>
-            <li><strong>Windows scaffold</strong><br><a href="https://github.com/eMacTh3Creator/VideoVault/tree/main/VideoVault-Windows">Browse the WPF starter project</a></li>
+            <li><strong>Release details</strong><br><a href="release-notes.html">Read the v1.3 release notes</a></li>
           </ul>
         </div>
       </div>

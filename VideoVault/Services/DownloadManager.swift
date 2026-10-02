@@ -1,229 +1,211 @@
 import Foundation
+import AppKit
 import UserNotifications
 
-class DownloadManager: ObservableObject {
+@MainActor
+final class DownloadManager: ObservableObject {
     static let shared = DownloadManager()
-
-    @Published var isProcessing = false
-    @Published var currentActivity = ""
-
+    @Published private(set) var isProcessing = false
+    @Published private(set) var currentActivity = ""
+    @Published private(set) var clipboardStatus = ""
     private var activeTasks: [UUID: Task<Void, Never>] = [:]
+    private var progressTokens: [UUID: UUID] = [:]
 
-    private init() {}
-
-    // MARK: - Queue Processing
-
-    @MainActor
     func processQueue() {
         let queue = DownloadQueue.shared
-        let settings = AppSettings.shared
-
-        guard !queue.queuedItems.isEmpty else {
-            if activeTasks.isEmpty {
-                isProcessing = false
-                currentActivity = ""
-            }
-            return
-        }
-
-        isProcessing = true
-
-        let availableSlots = settings.maxConcurrentDownloads - activeTasks.count
-        guard availableSlots > 0 else { return }
-
-        let itemsToProcess = Array(queue.queuedItems.prefix(availableSlots))
-
-        for item in itemsToProcess {
-            startDownload(item)
-        }
+        isProcessing = !activeTasks.isEmpty
+        guard !DependencyUpdateService.shared.isBusy else { return }
+        let slots = max(0, min(8, max(1, AppSettings.shared.maxConcurrentDownloads)) - activeTasks.count)
+        for item in queue.queuedItems.prefix(slots) { startDownload(item) }
+        isProcessing = !activeTasks.isEmpty
+        if !isProcessing { currentActivity = "" }
     }
 
-    @MainActor
     func startDownload(_ item: DownloadItem) {
         guard activeTasks[item.id] == nil else { return }
-
-        let task = Task.detached { [weak self] in
-            guard let self = self else { return }
-            await self.performDownload(item)
-        }
-
-        activeTasks[item.id] = task
+        var current = item
+        current.status = .fetching
+        DownloadQueue.shared.updateItem(current)
+        activeTasks[item.id] = Task { await performDownload(current) }
+        isProcessing = true
     }
 
-    @MainActor
     func cancelDownload(_ item: DownloadItem) {
+        progressTokens.removeValue(forKey: item.id)
         activeTasks[item.id]?.cancel()
-        activeTasks.removeValue(forKey: item.id)
         DownloadQueue.shared.cancelItem(item)
+        // Retain the slot until the child process has actually stopped.
         processQueue()
     }
 
-    @MainActor
     func cancelAllDownloads() {
-        let queue = DownloadQueue.shared
-
-        for (_, task) in activeTasks {
-            task.cancel()
-        }
-        activeTasks.removeAll()
-
-        for item in queue.activeItems + queue.queuedItems {
-            queue.cancelItem(item)
-        }
-
-        isProcessing = false
-        currentActivity = ""
+        progressTokens.removeAll()
+        for task in activeTasks.values { task.cancel() }
+        for item in DownloadQueue.shared.activeItems + DownloadQueue.shared.queuedItems { DownloadQueue.shared.cancelItem(item) }
+        isProcessing = !activeTasks.isEmpty
+        currentActivity = activeTasks.isEmpty ? "" : "Stopping downloads..."
     }
 
-    @MainActor
     func retryItem(_ item: DownloadItem) {
+        guard activeTasks[item.id] == nil else { return }
         var updated = item
         updated.status = .queued
         updated.errorMessage = nil
+        updated.retryCount = 0
         DownloadQueue.shared.updateItem(updated)
         processQueue()
     }
 
-    @MainActor
     func retryAllFailed() {
-        DownloadQueue.shared.retryFailed()
-        processQueue()
+        for item in DownloadQueue.shared.failedItems where activeTasks[item.id] == nil { retryItem(item) }
     }
 
-    // MARK: - Add Downloads
+    static func urls(from text: String) -> [String] {
+        text.components(separatedBy: .whitespacesAndNewlines).compactMap { value in
+            let cleaned = value.trimmingCharacters(in: CharacterSet(charactersIn: "<>\""))
+            guard let url = URL(string: cleaned), ["http", "https"].contains(url.scheme?.lowercased() ?? ""), url.host != nil else { return nil }
+            return cleaned
+        }
+    }
 
-    @MainActor
-    func addURLs(_ urls: [String], format: DownloadFormat) {
-        let newItems = urls
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty && ($0.hasPrefix("http://") || $0.hasPrefix("https://")) }
-            .map { DownloadItem(url: $0, format: format) }
+    func quickPaste(format: DownloadFormat, text: String? = nil) {
+        let urls = Self.urls(from: text ?? NSPasteboard.general.string(forType: .string) ?? "")
+        guard !urls.isEmpty else { clipboardStatus = "Clipboard has no valid HTTP or HTTPS URLs."; return }
+        let count = addURLs(urls, format: format)
+        clipboardStatus = count == 0 ? "These URLs are already active or queued." : "Added \(count) \(format.isAudioOnly ? "audio" : "video") download\(count == 1 ? "" : "s")."
+    }
 
-        guard !newItems.isEmpty else { return }
-
+    @discardableResult func addURLs(_ urls: [String], format: DownloadFormat) -> Int {
+        var seen = Set(DownloadQueue.shared.items.filter { $0.status.isActive || $0.status == .queued }
+            .map { DownloadIdentity.key(url: $0.url, mediaID: nil, format: $0.format) })
+        let newItems = urls.flatMap { Self.urls(from: $0) }.filter {
+            seen.insert(DownloadIdentity.key(url: $0, mediaID: nil, format: format)).inserted
+        }.map { DownloadItem(url: $0, format: format) }
         DownloadQueue.shared.addItems(newItems)
         processQueue()
+        return newItems.count
     }
-
-    // MARK: - Download Execution (runs detached, NOT on main actor)
 
     private func performDownload(_ item: DownloadItem) async {
-        let queue = DownloadQueue.shared
-        let ytdlp = YTDLPService.shared
-        let settings = AppSettings.shared
+        defer {
+            progressTokens.removeValue(forKey: item.id)
+            activeTasks.removeValue(forKey: item.id)
+            processQueue()
+        }
+        let root = AppSettings.shared.downloadURL.standardizedFileURL
+        let skipDuplicates = AppSettings.shared.skipDuplicates
         var current = item
-
-        // Step 1: Fetch video info
-        await MainActor.run {
-            current.status = .fetching
-            self.currentActivity = "Fetching info: \(current.url)"
-            queue.updateItem(current)
-        }
-
+        var reservation: String?
         do {
-            let info = try await ytdlp.fetchVideoInfo(url: current.url)
-            current.title = info.title
-            current.thumbnailURL = info.thumbnailURL
-            current.duration = info.duration
-            current.source = info.source
-            await MainActor.run {
-                queue.updateItem(current)
-            }
-        } catch {
-            // Non-fatal — continue with download even if info fetch fails
-            current.title = current.url
-            await MainActor.run {
-                queue.updateItem(current)
-            }
-        }
-
-        // Check cancellation
-        guard !Task.isCancelled else {
-            current.status = .cancelled
-            await MainActor.run {
-                queue.updateItem(current)
-                self.activeTasks.removeValue(forKey: item.id)
-            }
-            return
-        }
-
-        // Step 2: Download
-        await MainActor.run {
-            current.status = .downloading(progress: 0)
-            self.currentActivity = "Downloading: \(current.displayTitle)"
-            queue.updateItem(current)
-        }
-
-        do {
-            let outputDir = settings.sourceDirectory(for: current.sourceName)
-
-            let fileURL = try await ytdlp.download(
-                url: current.url,
-                format: current.format,
-                outputDirectory: outputDir
-            ) { progress, statusText in
-                Task { @MainActor in
-                    if statusText.contains("Converting") || statusText.contains("Merging") {
-                        current.status = .converting
-                    } else {
-                        current.status = .downloading(progress: progress)
-                    }
-                    self.currentActivity = "\(current.displayTitle) — \(statusText)"
-                    queue.updateItem(current)
-                }
-            }
-
-            // Success
-            let fileSize = (try? FileManager.default.attributesOfItem(atPath: fileURL.path)[.size] as? Int64) ?? 0
-
-            current.status = .completed
-            current.filePath = fileURL.path
-            current.fileSize = fileSize
-            current.dateCompleted = Date()
-
-            await MainActor.run {
-                queue.updateItem(current)
-                self.activeTasks.removeValue(forKey: item.id)
-                self.processQueue()
-            }
-            sendNotification(title: "Download Complete", body: current.displayTitle)
-
-        } catch {
-            guard !Task.isCancelled else {
-                current.status = .cancelled
-                await MainActor.run {
-                    queue.updateItem(current)
-                    self.activeTasks.removeValue(forKey: item.id)
-                }
+            try Task.checkCancellation()
+            try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+            if skipDuplicates, let file = await DuplicateLibrary.shared.existing(url: item.url, mediaID: nil, format: item.format, root: root) {
+                try Task.checkCancellation()
+                finish(&current, result: DownloadResult(file: file, mediaID: nil, downloader: "Library", skipped: true))
                 return
             }
-
-            current.status = .error(error.localizedDescription)
-            current.errorMessage = error.localizedDescription
-            await MainActor.run {
-                queue.updateItem(current)
-                self.activeTasks.removeValue(forKey: item.id)
-                self.processQueue()
+            if skipDuplicates, let prior = DownloadQueue.shared.completedItems.first(where: {
+                $0.format == item.format && DownloadIdentity.canonicalURL($0.url) == DownloadIdentity.canonicalURL(item.url)
+                    && $0.filePath.map { URL(fileURLWithPath: $0).resolvingSymlinksInPath().path.hasPrefix(root.resolvingSymlinksInPath().path + "/") && FileManager.default.fileExists(atPath: $0) } == true
+            }), let path = prior.filePath {
+                let file = URL(fileURLWithPath: path)
+                try await DuplicateLibrary.shared.remember(url: item.url, mediaID: prior.mediaID, format: item.format, file: file, root: root)
+                try Task.checkCancellation()
+                finish(&current, result: DownloadResult(file: file, mediaID: prior.mediaID, downloader: "Library", skipped: true))
+                return
             }
+            currentActivity = "Fetching info: \(current.displayTitle)"
+            do {
+                let info = try await YTDLPService.shared.fetchVideoInfo(url: current.url)
+                current.title = info.title
+                current.thumbnailURL = info.thumbnailURL
+                current.duration = info.duration
+                current.source = info.source
+                current.mediaID = info.mediaID
+                DownloadQueue.shared.updateItem(current)
+            } catch is CancellationError { throw CancellationError() }
+            catch {
+                if DownloadFailurePolicy.isSiteRestriction(error.localizedDescription) { throw error }
+                // Metadata is optional; a slow or broken info lookup must not strand the queue.
+                current.title = current.url
+            }
+            try Task.checkCancellation()
+            let key = DownloadIdentity.key(url: item.url, mediaID: current.mediaID, format: item.format)
+            if skipDuplicates {
+                try await DuplicateLibrary.shared.acquire(key, root: root)
+                reservation = key
+                if let file = await DuplicateLibrary.shared.existing(url: item.url, mediaID: current.mediaID, format: item.format, root: root) {
+                    try Task.checkCancellation()
+                    finish(&current, result: DownloadResult(file: file, mediaID: current.mediaID, downloader: "Library", skipped: true))
+                    await DuplicateLibrary.shared.release(key, root: root)
+                    return
+                }
+            }
+            let output = AppSettings.shared.organizeBySource
+                ? root.appendingPathComponent(current.sourceName.components(separatedBy: CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_")).inverted).joined(separator: "_")) : root
+            let token = UUID()
+            progressTokens[item.id] = token
+            var retries = 0
+            while true {
+                current.status = .downloading(progress: 0)
+                DownloadQueue.shared.updateItem(current)
+                do {
+                    var result = try await YTDLPService.shared.download(url: item.url, format: item.format, outputDirectory: output) { [weak self] progress, statusText in
+                        Task { @MainActor in
+                            guard let self, self.progressTokens[item.id] == token,
+                                  var live = DownloadQueue.shared.items.first(where: { $0.id == item.id }), live.status.isActive else { return }
+                            live.status = statusText.contains("Converting") ? .converting : .downloading(progress: progress)
+                            self.currentActivity = "\(live.displayTitle): \(statusText)"
+                            DownloadQueue.shared.updateItem(live)
+                        }
+                    }
+                    try Task.checkCancellation()
+                    progressTokens.removeValue(forKey: item.id)
+                    if skipDuplicates, !result.skipped {
+                        currentActivity = "Checking destination for duplicate content..."
+                        result = try await DuplicateLibrary.shared.coalesce(result, root: root)
+                    }
+                    do { try await DuplicateLibrary.shared.remember(url: item.url, mediaID: result.mediaID ?? current.mediaID, format: item.format, file: result.file, root: root) }
+                    catch { current.errorMessage = "File saved, but duplicate index could not be updated: \(error.localizedDescription)" }
+                    try Task.checkCancellation()
+                    finish(&current, result: result)
+                    if !result.skipped { sendNotification(title: "Download Complete", body: current.displayTitle) }
+                    break
+                } catch {
+                    try Task.checkCancellation()
+                    guard AppSettings.shared.autoRetryFailed, retries < 2,
+                          DownloadFailurePolicy.isTransient(error.localizedDescription), !DownloadFailurePolicy.isSiteRestriction(error.localizedDescription) else { throw error }
+                    retries += 1
+                    current.retryCount = retries
+                    currentActivity = "Retry \(retries)/2: \(current.displayTitle)"
+                    try await Task.sleep(nanoseconds: UInt64(retries * 3) * 1_000_000_000)
+                }
+            }
+        } catch {
+            progressTokens.removeValue(forKey: item.id)
+            if error is CancellationError || Task.isCancelled { current.status = .cancelled }
+            else { current.status = .error(error.localizedDescription); current.errorMessage = error.localizedDescription }
+            DownloadQueue.shared.updateItem(current)
         }
+        if let reservation { await DuplicateLibrary.shared.release(reservation, root: root) }
     }
 
-    // MARK: - Notifications
+    private func finish(_ item: inout DownloadItem, result: DownloadResult) {
+        item.status = result.skipped ? .skipped : .completed
+        item.filePath = result.file.path
+        item.fileSize = (try? result.file.resourceValues(forKeys: [.fileSizeKey]).fileSize).map(Int64.init)
+        item.mediaID = result.mediaID ?? item.mediaID
+        item.downloader = result.downloader
+        item.dateCompleted = Date()
+        DownloadQueue.shared.updateItem(item)
+    }
 
     private func sendNotification(title: String, body: String) {
         guard AppSettings.shared.notificationsEnabled else { return }
-
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
         content.sound = .default
-
-        let request = UNNotificationRequest(
-            identifier: UUID().uuidString,
-            content: content,
-            trigger: nil
-        )
-
-        UNUserNotificationCenter.current().add(request)
+        UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
     }
 }

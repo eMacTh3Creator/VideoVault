@@ -200,7 +200,7 @@ struct SidebarView: View {
             Button("Retry") { manager.retryItem(item) }
         }
 
-        if case .completed = item.status, let path = item.filePath {
+        if (item.status == .completed || item.status == .skipped), let path = item.filePath {
             Button("Show in Finder") { StorageManager.shared.openInFinder(path: path) }
         }
 
@@ -214,6 +214,7 @@ struct SidebarView: View {
         Divider()
 
         Button("Remove", role: .destructive) {
+            if item.status.isActive { manager.cancelDownload(item) }
             queue.removeItem(item)
             if selectedItem == item { selectedItem = nil }
         }
@@ -245,7 +246,7 @@ struct DownloadRowView: View {
                     Text("·")
                         .foregroundColor(.secondary)
 
-                    Label(item.format.rawValue, systemImage: item.format.iconName)
+                    Label(item.format.displayName, systemImage: item.format.iconName)
                         .font(.caption2)
                         .foregroundColor(.secondary)
 
@@ -281,7 +282,7 @@ struct DownloadRowView: View {
                     .rotationEffect(.degrees(-90))
                     .frame(width: 24, height: 24)
             }
-        case .completed:
+        case .completed, .skipped:
             Image(systemName: "checkmark.circle.fill")
                 .foregroundColor(.green)
                 .font(.system(size: 18))
@@ -312,7 +313,7 @@ struct DownloadRowView: View {
                 .font(.caption2)
                 .fontWeight(.medium)
                 .foregroundColor(.accentColor)
-        case .completed:
+        case .completed, .skipped:
             if let size = item.fileSize {
                 Text(StorageManager.shared.formatBytes(size))
                     .font(.caption2)

@@ -1,554 +1,177 @@
 import Foundation
 
-struct VideoInfo {
+struct VideoInfo: Decodable {
     let title: String
-    let duration: String?
+    let durationSeconds: Double?
     let thumbnailURL: String?
     let source: String?
     let uploaderName: String?
+    let id: String?
+    let extractorKey: String?
+    var mediaID: String? {
+        guard let id, let extractorKey else { return nil }
+        return "\(extractorKey.lowercased()):\(id)"
+    }
+    var duration: String? { durationSeconds.map { String(format: "%d:%02d", Int($0) / 60, Int($0) % 60) } }
+    enum CodingKeys: String, CodingKey {
+        case title, id
+        case durationSeconds = "duration", thumbnailURL = "thumbnail", source = "extractor"
+        case uploaderName = "uploader", extractorKey = "extractor_key"
+    }
 }
 
-class YTDLPService {
+struct DownloadResult {
+    let file: URL
+    let mediaID: String?
+    let downloader: String
+    let skipped: Bool
+}
+
+enum DownloadFailurePolicy {
+    static func isSiteRestriction(_ message: String) -> Bool {
+        let text = message.lowercased()
+        return ["safety reason", "video has been removed", "video is unavailable", "private video", "drm protected", "drm-protected",
+                "copyright", "not available in your country", "geo-restricted", "login required", "sign in to confirm your age",
+                "age verification", "video closed", "video is blocked"].contains { text.contains($0) }
+    }
+    static func isTransient(_ message: String) -> Bool {
+        let text = message.lowercased()
+        return ["timed out", "stopped responding", "connection reset", "temporary failure", "http error 429", "http error 50", "network is unreachable"].contains { text.contains($0) }
+    }
+    static func explanation(_ message: String) -> String {
+        if message.lowercased().contains("safety reason") {
+            return "The website refused access to this video for safety reasons. yt-dlp is reporting the website's response. Open the original page in your browser and follow the site's support instructions.\n\n\(message)"
+        }
+        return message
+    }
+}
+
+final class YTDLPService {
     static let shared = YTDLPService()
     private let settings = AppSettings.shared
-
-    private init() {}
-
-    private struct DownloadAttempt {
-        let formatArgs: [String]
-        let includeCookies: Bool
+    func isYTDLPInstalled() -> Bool { FileManager.default.isExecutableFile(atPath: settings.ytdlpPath) }
+    func isFFmpegInstalled() -> Bool { FileManager.default.isExecutableFile(atPath: settings.ffmpegPath) }
+    func findYTDLP() -> String? { Self.findExecutable("yt-dlp") }
+    func findFFmpeg() -> String? { Self.findExecutable("ffmpeg") }
+    static func findExecutable(_ name: String) -> String? {
+        ([FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!.appendingPathComponent("VideoVault/tools").path,
+          NSHomeDirectory() + "/.local/bin", "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]
+            + (ProcessRunner.environment["PATH"] ?? "").components(separatedBy: ":"))
+            .map { $0 + "/" + name }.first { FileManager.default.isExecutableFile(atPath: $0) }
     }
 
-    // MARK: - yt-dlp Availability
-
-    func isYTDLPInstalled() -> Bool {
-        FileManager.default.isExecutableFile(atPath: settings.ytdlpPath)
-    }
-
-    func findYTDLP() -> String? {
-        let commonPaths = [
-            "/opt/homebrew/bin/yt-dlp",
-            "/usr/local/bin/yt-dlp",
-            "/usr/bin/yt-dlp",
-            NSHomeDirectory() + "/.local/bin/yt-dlp"
-        ]
-        for path in commonPaths {
-            if FileManager.default.isExecutableFile(atPath: path) {
-                return path
-            }
-        }
-        return nil
-    }
-
-    // MARK: - ffmpeg Availability
-
-    func isFFmpegInstalled() -> Bool {
-        FileManager.default.isExecutableFile(atPath: settings.ffmpegPath)
-    }
-
-    func findFFmpeg() -> String? {
-        let commonPaths = [
-            "/opt/homebrew/bin/ffmpeg",
-            "/usr/local/bin/ffmpeg",
-            "/usr/bin/ffmpeg",
-            NSHomeDirectory() + "/.local/bin/ffmpeg"
-        ]
-        for path in commonPaths {
-            if FileManager.default.isExecutableFile(atPath: path) {
-                return path
-            }
-        }
-        return nil
-    }
-
-    private func runProcess(
-        executablePath: String,
-        arguments: [String],
-        timeout: TimeInterval = 5.0
-    ) -> (output: String, success: Bool) {
-        let process = Process()
-        let pipe = Pipe()
-        process.executableURL = URL(fileURLWithPath: executablePath)
-        process.arguments = arguments
-        process.standardOutput = pipe
-        process.standardError = Pipe()
-
-        do { try process.run() } catch { return ("", false) }
-
-        let deadline = Date().addingTimeInterval(timeout)
-        while process.isRunning && Date() < deadline {
-            Thread.sleep(forTimeInterval: 0.1)
-        }
-        if process.isRunning { process.terminate(); return ("", false) }
-
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return (output, process.terminationStatus == 0)
-    }
-
+    // Legacy status check, called only on a background queue.
     func getVersion() -> String? {
         guard isYTDLPInstalled() else { return nil }
-        let result = runProcess(executablePath: settings.ytdlpPath, arguments: ["--version"], timeout: 5.0)
-        return result.success ? result.output : nil
+        let process = Process()
+        let pipe = Pipe()
+        process.executableURL = URL(fileURLWithPath: settings.ytdlpPath)
+        process.arguments = ["--version"]
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+        guard (try? process.run()) != nil else { return nil }
+        let timeout = DispatchWorkItem { if process.isRunning { process.terminate() } }
+        DispatchQueue.global().asyncAfter(deadline: .now() + 5, execute: timeout)
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        timeout.cancel()
+        return process.terminationStatus == 0 ? String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines) : nil
     }
 
-    // MARK: - Common Args
-
-    private func commonArgs(includeCookies: Bool) -> [String] {
-        var args: [String] = [
-            "--no-warnings",
-            "--no-check-certificates",
-        ]
-        if includeCookies, settings.useBrowserCookies, !settings.cookiesBrowser.isEmpty {
-            args += ["--cookies-from-browser", settings.cookiesBrowser]
-        }
-        // Tell yt-dlp where ffmpeg is so it can merge streams and convert audio
-        if isFFmpegInstalled() {
-            let ffmpegDir = URL(fileURLWithPath: settings.ffmpegPath).deletingLastPathComponent().path
-            args += ["--ffmpeg-location", ffmpegDir]
-        }
-        args += [
-            "--extractor-args", "youtube:player_client=web,default;lang=en",
-            "--user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        ]
+    @MainActor private func commonArgs(cookies: Bool) -> [String] {
+        var args = ["--ignore-config", "--no-playlist", "--socket-timeout", "20", "--retries", "3", "--fragment-retries", "3", "--no-colors"]
+        if cookies, settings.useBrowserCookies, !settings.cookiesBrowser.isEmpty { args += ["--cookies-from-browser", settings.cookiesBrowser] }
+        if isFFmpegInstalled() { args += ["--ffmpeg-location", settings.ffmpegPath] }
+        if let deno = Self.findExecutable("deno") { args += ["--js-runtimes", "deno:\(deno)"] }
+        else if let node = Self.findExecutable("node") { args += ["--js-runtimes", "node:\(node)"] }
         return args
     }
 
-    // MARK: - Video Info (with timeout)
-
-    func fetchVideoInfo(url: String) async throws -> VideoInfo {
+    @MainActor func fetchVideoInfo(url: String) async throws -> VideoInfo {
         guard isYTDLPInstalled() else { throw YTDLPError.notInstalled }
-
-        return try await withThrowingTaskGroup(of: VideoInfo.self) { group in
-            group.addTask {
-                try await self._fetchVideoInfo(url: url)
-            }
-            group.addTask {
-                try await Task.sleep(nanoseconds: 15_000_000_000)
-                throw YTDLPError.fetchFailed("Timed out")
-            }
-            let result = try await group.next()!
-            group.cancelAll()
-            return result
+        var lastError = "No metadata returned"
+        for cookies in (settings.useBrowserCookies ? [true, false] : [false]) {
+            let result = try await ProcessRunner().run(executable: settings.ytdlpPath,
+                arguments: ["--dump-single-json", "--skip-download"] + commonArgs(cookies: cookies) + ["--", url], timeout: 25)
+            if result.exitCode == 0, let data = result.output.data(using: .utf8), let info = try? JSONDecoder().decode(VideoInfo.self, from: data) { return info }
+            lastError = result.message
+            if DownloadFailurePolicy.isSiteRestriction(lastError) { break }
         }
+        throw YTDLPError.fetchFailed(DownloadFailurePolicy.explanation(lastError))
     }
 
-    private func _fetchVideoInfo(url: String) async throws -> VideoInfo {
-        do {
-            return try await fetchVideoInfo(url: url, includeCookies: settings.useBrowserCookies)
-        } catch let error as YTDLPError {
-            if settings.useBrowserCookies, shouldRetryWithoutCookies(error: error) {
-                return try await fetchVideoInfo(url: url, includeCookies: false)
-            }
-            throw error
-        }
-    }
-
-    private func fetchVideoInfo(url: String, includeCookies: Bool) async throws -> VideoInfo {
-        let process = Process()
-        let pipe = Pipe()
-        let errorPipe = Pipe()
-
-        var arguments = ["--dump-json", "--no-download"]
-        arguments += commonArgs(includeCookies: includeCookies)
-        arguments += [url]
-
-        process.executableURL = URL(fileURLWithPath: settings.ytdlpPath)
-        process.arguments = arguments
-        process.standardOutput = pipe
-        process.standardError = errorPipe
-
-        return try await withCheckedThrowingContinuation { continuation in
-            var resumed = false
-            let lock = NSLock()
-            var timeoutTask: DispatchWorkItem?
-
-            func safeResume(with result: Result<VideoInfo, Error>) {
-                lock.lock(); defer { lock.unlock() }
-                guard !resumed else { return }
-                resumed = true
-                timeoutTask?.cancel()
-                continuation.resume(with: result)
-            }
-
-            timeoutTask = DispatchWorkItem {
-                guard process.isRunning else { return }
-                process.terminate()
-                safeResume(with: .failure(YTDLPError.fetchFailed("Timed out")))
-            }
-
-            func finish() {
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-
-                guard process.terminationStatus == 0 else {
-                    let errorMsg = String(data: errorData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Unknown error"
-                    safeResume(with: .failure(YTDLPError.fetchFailed(errorMsg)))
-                    return
-                }
-
-                guard !data.isEmpty,
-                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                    safeResume(with: .failure(YTDLPError.parseFailed))
-                    return
-                }
-
-                let title = json["title"] as? String ?? "Unknown"
-                let durationSec = json["duration"] as? Double
-                let thumbnail = json["thumbnail"] as? String
-                let extractor = json["extractor"] as? String
-                let uploader = json["uploader"] as? String
-
-                let duration: String? = durationSec.map { sec in
-                    let mins = Int(sec) / 60
-                    let secs = Int(sec) % 60
-                    return String(format: "%d:%02d", mins, secs)
-                }
-
-                safeResume(with: .success(VideoInfo(
-                    title: title, duration: duration, thumbnailURL: thumbnail,
-                    source: extractor, uploaderName: uploader
-                )))
-            }
-
-            do {
-                try process.run()
-                if let timeoutTask {
-                    DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 15, execute: timeoutTask)
-                }
-                DispatchQueue.global(qos: .utility).async {
-                    process.waitUntilExit()
-                    finish()
-                }
-            }
-            catch { safeResume(with: .failure(YTDLPError.launchFailed)) }
-        }
-    }
-
-    // MARK: - Download
-
-    func download(
-        url: String,
-        format: DownloadFormat,
-        outputDirectory: URL,
-        progressHandler: @escaping (Double, String) -> Void
-    ) async throws -> URL {
+    @MainActor func download(url: String, format: DownloadFormat, outputDirectory: URL,
+                  progressHandler: @escaping @Sendable (Double, String) -> Void) async throws -> DownloadResult {
         guard isYTDLPInstalled() else { throw YTDLPError.notInstalled }
-
-        // Ensure output directory exists
+        if format.isAudioOnly && !isFFmpegInstalled() { throw YTDLPError.downloadFailed("ffmpeg is required for audio extraction. Install it in Settings.") }
         try FileManager.default.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
-
-        // Snapshot existing files BEFORE download so we can diff later
-        let existingFiles = Set((try? FileManager.default.contentsOfDirectory(
-            at: outputDirectory,
-            includingPropertiesForKeys: nil,
-            options: [.skipsHiddenFiles]
-        ))?.map { $0.lastPathComponent } ?? [])
-
-        let attempts = downloadAttempts(for: format)
-        var lastError: Error = YTDLPError.downloadFailed("Download failed")
-
-        for (index, attempt) in attempts.enumerated() {
+        var variants = format.ytdlpArgVariants
+        if !isFFmpegInstalled(), !format.isAudioOnly {
+            let selector = format.maxHeight.map { "best[height<=\($0)]/best" } ?? "best"
+            variants = [["-f", selector]]
+        }
+        var lastMessage = "Download failed"
+        for cookies in (settings.useBrowserCookies ? [true, false] : [false]) {
+            for variant in variants {
+                try Task.checkCancellation()
+                var args = commonArgs(cookies: cookies) + variant + [
+                    "-P", outputDirectory.path,
+                    "-o", "%(title).160B [%(extractor_key)s-%(id)s] [\(format.storageKey)].%(ext)s",
+                    "--newline", "--progress", "--progress-template", "download:__VV_PROGRESS__%(progress._percent_str)s",
+                    "--print", "after_move:__VV_RESULT__%(.{filepath,id,extractor_key})j"
+                ]
+                args += settings.skipDuplicates ? ["--no-overwrites"] : ["--force-overwrites"]
+                if settings.embedMetadata { args += ["--embed-metadata"] }
+                if settings.embedThumbnail && !format.isAudioOnly { args += ["--embed-thumbnail"] }
+                args += ["--", url]
+                let result = try await ProcessRunner().run(executable: settings.ytdlpPath, arguments: args,
+                    directory: outputDirectory, timeout: 180, inactivityTimeout: true) { line in
+                    if line.hasPrefix("__VV_PROGRESS__") {
+                        let value = line.dropFirst("__VV_PROGRESS__".count).replacingOccurrences(of: "%", with: "").trimmingCharacters(in: .whitespaces)
+                        if let percent = Double(value) { progressHandler(min(max(percent / 100, 0), 1), "Downloading") }
+                    } else if line.contains("[Merger]") || line.contains("[ExtractAudio]") { progressHandler(0.99, "Converting") }
+                }
+                if result.exitCode == 0 { return try Self.downloadResult(output: result.output, directory: outputDirectory) }
+                lastMessage = result.message
+                if DownloadFailurePolicy.isSiteRestriction(lastMessage) { throw YTDLPError.downloadFailed(DownloadFailurePolicy.explanation(lastMessage)) }
+                if !lastMessage.lowercased().contains("requested format is not available") { break }
+                progressHandler(0, "Trying another available format")
+            }
+        }
+        if settings.enableFallbackDownloader {
+            progressHandler(0, "Trying fallback downloader")
             do {
-                return try await runDownloadAttempt(
-                    url: url,
-                    format: format,
-                    outputDirectory: outputDirectory,
-                    existingFiles: existingFiles,
-                    attempt: attempt,
-                    progressHandler: progressHandler
-                )
-            } catch let error as YTDLPError {
-                lastError = error
-
-                let hasMoreAttempts = index < attempts.count - 1
-                guard hasMoreAttempts, shouldRetryDownload(error: error) else {
-                    throw error
-                }
-            } catch {
-                lastError = error
-                throw error
-            }
+                return try await FallbackDownloader.download(url: url, format: format, directory: outputDirectory,
+                    streamlink: settings.streamlinkPath, ffmpeg: settings.ffmpegPath, progress: progressHandler)
+            } catch is CancellationError { throw CancellationError() }
+            catch { lastMessage += "\n\nFallback: \(error.localizedDescription)" }
         }
-
-        throw lastError
+        throw YTDLPError.downloadFailed(lastMessage)
     }
 
-    private func runDownloadAttempt(
-        url: String,
-        format: DownloadFormat,
-        outputDirectory: URL,
-        existingFiles: Set<String>,
-        attempt: DownloadAttempt,
-        progressHandler: @escaping (Double, String) -> Void
-    ) async throws -> URL {
-        let process = Process()
-        let pipe = Pipe()
-        let errorPipe = Pipe()
-
-        let outputTemplate = outputDirectory.path + "/%(title)s.%(ext)s"
-
-        var arguments = attempt.formatArgs
-        arguments += [
-            "-o", outputTemplate,
-            "--newline",
-            "--print", "after_move:filepath",
-        ]
-        arguments += commonArgs(includeCookies: attempt.includeCookies)
-
-        if settings.embedThumbnail && !format.isAudioOnly {
-            arguments += ["--embed-thumbnail"]
+    static func downloadResult(output: String, directory: URL) throws -> DownloadResult {
+        struct PrintedFile: Decodable { let filepath: String; let id: String?; let extractor_key: String? }
+        for line in output.split(separator: "\n").reversed() where line.hasPrefix("__VV_RESULT__") {
+            guard let record = try? JSONDecoder().decode(PrintedFile.self, from: Data(line.dropFirst("__VV_RESULT__".count).utf8)) else { continue }
+            let file = URL(fileURLWithPath: record.filepath).standardizedFileURL
+            guard file.resolvingSymlinksInPath().path.hasPrefix(directory.resolvingSymlinksInPath().path + "/"),
+                  let values = try? file.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey]),
+                  values.isRegularFile == true, (values.fileSize ?? 0) > 0 else { continue }
+            let identity = record.id.flatMap { id in record.extractor_key.map { "\($0.lowercased()):\(id)" } }
+            return DownloadResult(file: file, mediaID: identity, downloader: "yt-dlp", skipped: output.contains("has already been downloaded"))
         }
-        if settings.embedMetadata {
-            arguments += ["--embed-metadata"]
-        }
-
-        arguments += [url]
-
-        process.executableURL = URL(fileURLWithPath: settings.ytdlpPath)
-        process.arguments = arguments
-        process.standardOutput = pipe
-        process.standardError = errorPipe
-        process.currentDirectoryURL = outputDirectory
-
-        return try await withCheckedThrowingContinuation { continuation in
-            var resumed = false
-            let lock = NSLock()
-            var capturedPaths: [String] = []
-            var allOutput = ""
-
-            func safeResume(with result: Result<URL, Error>) {
-                lock.lock(); defer { lock.unlock() }
-                guard !resumed else { return }
-                resumed = true
-                continuation.resume(with: result)
-            }
-
-            pipe.fileHandleForReading.readabilityHandler = { handle in
-                let data = handle.availableData
-                guard !data.isEmpty,
-                      let line = String(data: data, encoding: .utf8) else { return }
-
-                lock.lock()
-                allOutput += line
-                lock.unlock()
-
-                for singleLine in line.components(separatedBy: .newlines) {
-                    let trimmed = singleLine.trimmingCharacters(in: .whitespaces)
-                    guard !trimmed.isEmpty else { continue }
-
-                    // Parse download progress
-                    if trimmed.contains("%") && trimmed.contains("[download]") {
-                        let parts = trimmed.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
-                        for part in parts {
-                            let cleaned = part.replacingOccurrences(of: "%", with: "")
-                            if let percent = Double(cleaned), percent > 0, percent <= 100 {
-                                progressHandler(min(percent / 100.0, 1.0), trimmed)
-                                break
-                            }
-                        }
-                    }
-
-                    // Capture any file path printed by --print after_move:filepath
-                    // This line will NOT start with [ and will be a file path
-                    if !trimmed.hasPrefix("[") && !trimmed.hasPrefix("WARNING") &&
-                       !trimmed.hasPrefix("ERROR") && trimmed.contains("/") {
-                        let possiblePath = trimmed.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if FileManager.default.fileExists(atPath: possiblePath) {
-                            lock.lock()
-                            capturedPaths.append(possiblePath)
-                            lock.unlock()
-                        }
-                    }
-
-                    // Also capture [download] Destination lines
-                    if trimmed.contains("Destination:") {
-                        let path = trimmed.components(separatedBy: "Destination:").last?
-                            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                        if !path.isEmpty {
-                            lock.lock()
-                            capturedPaths.append(path)
-                            lock.unlock()
-                        }
-                    }
-
-                    // Merging / converting progress
-                    if trimmed.hasPrefix("[Merger]") || trimmed.hasPrefix("[ExtractAudio]") ||
-                       trimmed.contains("Merging") || trimmed.contains("Converting") {
-                        progressHandler(0.99, "Converting...")
-                    }
-                }
-            }
-
-            func finish() {
-                pipe.fileHandleForReading.readabilityHandler = nil
-
-                if process.terminationStatus == 0 {
-                    // Strategy 1: Use path from --print after_move:filepath
-                    lock.lock()
-                    let paths = capturedPaths
-                    lock.unlock()
-
-                    for path in paths.reversed() {
-                        if FileManager.default.fileExists(atPath: path) {
-                            safeResume(with: .success(URL(fileURLWithPath: path)))
-                            return
-                        }
-                    }
-
-                    // Strategy 2: Find new files that weren't there before
-                    if let newFile = self.findNewFile(in: outputDirectory, excluding: existingFiles) {
-                        safeResume(with: .success(newFile))
-                        return
-                    }
-
-                    // Strategy 3: Newest file in directory
-                    if let newest = self.newestFile(in: outputDirectory) {
-                        safeResume(with: .success(newest))
-                        return
-                    }
-
-                    // Strategy 4: Check parent directory too
-                    let parentDir = outputDirectory.deletingLastPathComponent()
-                    if let newInParent = self.findNewFile(in: parentDir, excluding: []) {
-                        safeResume(with: .success(newInParent))
-                        return
-                    }
-
-                    safeResume(with: .failure(YTDLPError.fileNotFound))
-                } else {
-                    let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-                    let errorMsg = String(data: errorData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Download failed"
-
-                    // Also include stdout for debugging
-                    lock.lock()
-                    let output = allOutput
-                    lock.unlock()
-
-                    let fullError = errorMsg.isEmpty ? output : errorMsg
-                    safeResume(with: .failure(YTDLPError.downloadFailed(fullError)))
-                }
-            }
-
-            do {
-                try process.run()
-                DispatchQueue.global(qos: .utility).async {
-                    process.waitUntilExit()
-                    finish()
-                }
-            }
-            catch { safeResume(with: .failure(YTDLPError.launchFailed)) }
-        }
-    }
-
-    private func downloadAttempts(for format: DownloadFormat) -> [DownloadAttempt] {
-        let cookieModes = settings.useBrowserCookies && !settings.cookiesBrowser.isEmpty
-            ? [true, false]
-            : [false]
-
-        var attempts: [DownloadAttempt] = []
-        var seenKeys = Set<String>()
-
-        for includeCookies in cookieModes {
-            for formatArgs in format.ytdlpArgVariants {
-                let key = "\(includeCookies)|\(formatArgs.joined(separator: " "))"
-                guard seenKeys.insert(key).inserted else { continue }
-                attempts.append(DownloadAttempt(formatArgs: formatArgs, includeCookies: includeCookies))
-            }
-        }
-
-        return attempts
-    }
-
-    private func shouldRetryDownload(error: YTDLPError) -> Bool {
-        switch error {
-        case .downloadFailed(let message):
-            let normalized = message.lowercased()
-            return normalized.contains("requested format is not available")
-                || normalized.contains("operation not permitted")
-                || normalized.contains("cookies")
-                || normalized.contains("browser")
-                || normalized.contains("failed to decrypt")
-        default:
-            return false
-        }
-    }
-
-    private func shouldRetryWithoutCookies(error: YTDLPError) -> Bool {
-        switch error {
-        case .fetchFailed(let message), .downloadFailed(let message):
-            let normalized = message.lowercased()
-            return normalized.contains("operation not permitted")
-                || normalized.contains("cookies")
-                || normalized.contains("browser")
-                || normalized.contains("failed to decrypt")
-        default:
-            return false
-        }
-    }
-
-    /// Find files in directory that weren't in the existing set
-    private func findNewFile(in directory: URL, excluding existingFiles: Set<String>) -> URL? {
-        guard let files = try? FileManager.default.contentsOfDirectory(
-            at: directory,
-            includingPropertiesForKeys: [.creationDateKey, .contentModificationDateKey],
-            options: [.skipsHiddenFiles]
-        ) else { return nil }
-
-        let newFiles = files.filter {
-            !$0.hasDirectoryPath &&
-            !existingFiles.contains($0.lastPathComponent) &&
-            !$0.lastPathComponent.hasSuffix(".part") &&
-            !$0.lastPathComponent.hasSuffix(".ytdl") &&
-            !$0.lastPathComponent.hasSuffix(".temp")
-        }
-
-        // Return the newest new file
-        return newFiles.sorted { url1, url2 in
-            let date1 = (try? url1.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast
-            let date2 = (try? url2.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast
-            return date1 > date2
-        }.first
-    }
-
-    private func newestFile(in directory: URL) -> URL? {
-        guard let files = try? FileManager.default.contentsOfDirectory(
-            at: directory,
-            includingPropertiesForKeys: [.contentModificationDateKey],
-            options: [.skipsHiddenFiles]
-        ) else { return nil }
-
-        return files
-            .filter {
-                !$0.hasDirectoryPath &&
-                !$0.lastPathComponent.hasSuffix(".part") &&
-                !$0.lastPathComponent.hasSuffix(".ytdl") &&
-                !$0.lastPathComponent.hasSuffix(".temp")
-            }
-            .sorted { url1, url2 in
-                let date1 = (try? url1.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast
-                let date2 = (try? url2.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast
-                return date1 > date2
-            }
-            .first
+        throw YTDLPError.fileNotFound
     }
 }
 
-// MARK: - Errors
-
 enum YTDLPError: LocalizedError {
-    case notInstalled, launchFailed, fetchFailed(String), parseFailed
-    case downloadFailed(String), fileNotFound, cancelled
-
+    case notInstalled, fetchFailed(String), downloadFailed(String), fileNotFound
     var errorDescription: String? {
         switch self {
-        case .notInstalled: return "yt-dlp is not installed"
-        case .launchFailed: return "Failed to launch yt-dlp"
+        case .notInstalled: return "yt-dlp is not installed. Install it in Settings."
         case .fetchFailed(let msg): return "Info fetch failed: \(msg)"
-        case .parseFailed: return "Failed to parse video info"
         case .downloadFailed(let msg): return "Download failed: \(msg)"
-        case .fileNotFound: return "Downloaded file not found"
-        case .cancelled: return "Cancelled"
+        case .fileNotFound: return "The downloader finished without a valid output file. No unrelated file was selected."
         }
     }
 }
