@@ -229,5 +229,7 @@ MIT — see [LICENSE](LICENSE) for details.
 ---
 
 <p align="center">
-  Built with SwiftUI · Powered by <a href="https://github.com/yt-dlp/yt-dlp">yt-dlp</a>
+  Built with SwiftUI · Powered by <a href="https://github.com/yt-dlp/yt-dlp">yt-dlp</a> · Updates by <a href="https://sparkle-project.org/">Sparkle</a>
 </p>
+
+Sparkle and its bundled components retain their upstream notices in [Releases/Sparkle-LICENSE.txt](Releases/Sparkle-LICENSE.txt), also included in the release zip.

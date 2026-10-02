@@ -32,6 +32,8 @@ fi
 mkdir -p "$OUTPUT"
 ARCHIVE="$OUTPUT/VideoVault-v${VERSION}-macOS.zip"
 ditto -c -k --sequesterRsrc --keepParent "$APP" "$ARCHIVE"
+cp "$PACKAGES/checkouts/Sparkle/LICENSE" "$OUTPUT/Sparkle-LICENSE.txt"
+/usr/bin/zip -q -j "$ARCHIVE" "$OUTPUT/Sparkle-LICENSE.txt"
 if [[ -f "$ROOT/docs/appcast.xml" ]]; then cp "$ROOT/docs/appcast.xml" "$OUTPUT/appcast.xml"; fi
 cp "$ROOT/docs/release-notes.html" "$OUTPUT/VideoVault-v${VERSION}-macOS.html"
 "$SPARKLE/generate_appcast" --account videovault --versions "$BUILD_VERSION" --maximum-deltas 0 \

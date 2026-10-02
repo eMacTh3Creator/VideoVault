@@ -25,11 +25,11 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
 <p>Streamlink is optional and supports a subset of sites. Install it in Settings. Site access restrictions retain their original error and support instructions.</p>
 <p>Users of 1.2 must install this release once to enable automatic updates for future versions.</p>
 ]]></description>
-            <enclosure url="https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.3/VideoVault-v1.3-macOS.zip" length="3034519" type="application/octet-stream" sparkle:edSignature="kl7fyz07gH3AYy1QHAv4oyGjL8wDUejuFn3HASs3OfFI7HpNMz9eBGI+Mwi471Tg0BWDaThclOaq2wPwPunRCA=="/>
+            <enclosure url="https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.3/VideoVault-v1.3-macOS.zip" length="3033715" type="application/octet-stream" sparkle:edSignature="n3IfbICp9sZlDqCfT+1dQuPqAF4STG7/Y4cxGv0uYK0VKCQYa/JTG3E0EiurMrbHoQ/PYAzfU2smkF0rjLhZBQ=="/>
         </item>
     </channel>
 </rss>
 <!-- sparkle-signatures:
-edSignature: YwoVp+ipDrB24UlghCT7IxEvbCQB0e2SQTNX5xxhvJT4ZVG66sxTNZNQj6t4zNMvAB00h33HdC8LtLTPDW8ZDg==
+edSignature: Sp7F0N8uB5jvjSWvFpOybjMtEvMgdkhCqZ7iYYu1AcgK1vcCTp4qYowkt0vEL8AA7bn0Uzz2m5LUwUMOaNntBg==
 length: 2254
 -->
