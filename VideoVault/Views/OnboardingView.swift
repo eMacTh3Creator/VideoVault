@@ -2,6 +2,18 @@ import SwiftUI
 
 struct OnboardingView: View {
     @EnvironmentObject var settings: AppSettings
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var showHomebrewSetup = false
+    @State private var homebrewFound = false
+
+    private let homebrewInstallCommand = #"/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)""#
+    private var homebrewPath: String {
+        #if arch(arm64)
+        return "/opt/homebrew/bin/brew"
+        #else
+        return "/usr/local/bin/brew"
+        #endif
+    }
 
     @State private var ytdlpFound = false
     @State private var detectedPath: String?
@@ -60,6 +72,15 @@ struct OnboardingView: View {
                 .padding(.vertical, 4)
 
             // Download location
+            HStack(spacing: 12) {
+                Text(homebrewFound ? "Homebrew detected" : "Need Homebrew? Set it up first.")
+                    .font(.caption)
+                Button("Homebrew Setup…") { showHomebrewSetup = true }
+                    .controlSize(.small)
+                Button("Re-check Tools") { checkTools() }
+                    .controlSize(.small)
+            }
+
             VStack(spacing: 8) {
                 Text("Download Location")
                     .font(.subheadline)
@@ -110,7 +131,70 @@ struct OnboardingView: View {
             didCheck = true
             checkYTDLP()
             checkFFmpeg()
+            checkTools()
         }
+        .sheet(isPresented: $showHomebrewSetup) { homebrewSetupSheet }
+        .onChange(of: scenePhase) { phase in
+            if phase == .active { checkTools() }
+        }
+    }
+
+    private func checkTools() {
+        homebrewFound = FileManager.default.isExecutableFile(atPath: homebrewPath)
+        checkYTDLP()
+        checkFFmpeg()
+    }
+
+    private func commandRow(_ command: String) -> some View {
+        HStack(alignment: .top) {
+            Text(command)
+                .font(.system(size: 12, design: .monospaced))
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Button("Copy") {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(command, forType: .string)
+            }
+            .accessibilityLabel("Copy \(command)")
+        }
+        .padding(10)
+        .background(Color(nsColor: .controlBackgroundColor))
+        .cornerRadius(6)
+    }
+
+    private var homebrewSetupSheet: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Set up Homebrew").font(.title2).bold()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Homebrew is optional. You can also use VideoVault’s Download & Install buttons for yt-dlp and ffmpeg.")
+                    Text(homebrewFound ? "Homebrew is installed on this Mac. Continue at step 3." : "If Terminal says ‘command not found: brew’, complete steps 1 and 2 first.")
+                        .foregroundColor(.secondary)
+                    Text("1. Open Terminal and run the official installer.").bold()
+                    commandRow(homebrewInstallCommand)
+                    Text("Follow the prompts. The installer may request your Mac login password and Apple’s Command Line Tools. Password characters will not appear while you type.")
+                    Text("2. Follow the installer’s Next steps to add Homebrew to your shell, then open a new Terminal window.").bold()
+                    Text("For this Mac, you can activate Homebrew in the current Terminal with:")
+                    commandRow("eval \"$(\(homebrewPath) shellenv)\"")
+                    Text("3. Install VideoVault’s download tools.").bold()
+                    commandRow("\(homebrewPath) install yt-dlp ffmpeg")
+                    Text("4. Return to VideoVault and choose Re-check Tools.").bold()
+                    Link("Official installation instructions", destination: URL(string: "https://docs.brew.sh/Installation")!)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            HStack {
+                Button("Open Terminal") {
+                    NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Utilities/Terminal.app"))
+                }
+                Button("Re-check Tools") { checkTools() }
+                Spacer()
+                Button("Done") { checkTools(); showHomebrewSetup = false }
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(24)
+        .frame(width: 620, height: 560)
     }
 
     // MARK: - yt-dlp Status Section

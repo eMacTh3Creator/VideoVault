@@ -1,3 +1,24 @@
+# VideoVault v1.3.3
+
+First-start setup guidance for macOS 13 and later, on Intel and Apple Silicon.
+
+- Add **Homebrew Setup…** to the welcome screen with the official installer command and copy buttons.
+- Explain Terminal installation prompts and the installer's **Next steps** for shell setup.
+- Offer **Open Terminal**, architecture-appropriate tool installation commands, and **Re-check Tools**.
+- Refresh tool detection when returning to the app; keep Homebrew optional alongside the existing direct installers.
+
+## Verification
+
+- Core test suite: 31 tests executed, 3 skipped, 0 failures. Live dependency installation and real download tests were skipped because the optional tools were unavailable on this Mac.
+- Universal release build and recursive bundle signature verification are checked during packaging.
+- Homebrew commands were checked against its official installation documentation. The Homebrew installer was not run on the maintainer's Mac.
+
+## Install
+
+Download `Releases/VideoVault-v1.3.3-macOS.zip`, unzip, and move **VideoVault.app** to `/Applications`. This universal build supports Intel and Apple Silicon. It is ad-hoc signed, not Apple-notarized. This release requires manual installation; the existing signed updater feed is retained.
+
+---
+
 # VideoVault v1.3.2
 
 Backup recovery and Force Retry patch for macOS 13 and later, on Intel and Apple Silicon.
