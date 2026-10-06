@@ -203,6 +203,29 @@ bash script/package_release.sh /tmp/VideoVault-release-artifacts
 
 The Sparkle private signing key is stored in the maintainer's login Keychain under account `videovault`, never in this repository. Packaging requires that key and validates it against the app's public key. Upload the matching zip and checksums to the GitHub release before publishing the generated `docs/appcast.xml`. Do not edit a signed feed manually. See `script/prepare_update_test.sh` for an isolated local installation/relaunch test.
 
+### Publish a repository archive to the updater
+
+Committing a ZIP does not update Sparkle's feed. The original `videovault` signing key must be available in the publishing Mac's login Keychain. If the key is on another Mac, run this step there; a new key will not be trusted by existing installations.
+
+After pulling the latest `main`, use the already published archive:
+
+```bash
+bash script/prepare_published_update.sh /tmp/VideoVault-signed-feed
+```
+
+Set `VIDEOVAULT_PACKAGES` to your Xcode cloned packages directory if it differs from `/tmp/VideoVault-packages`. The script checks the existing signing key and signed feed, downloads the exact committed ZIP, verifies its bytes, then generates and verifies a signed feed. It stops before changing the feed when the key is missing or mismatched.
+
+Publish the verified result:
+
+```bash
+cp /tmp/VideoVault-signed-feed/appcast.xml docs/appcast.xml
+git add docs/appcast.xml
+git commit -m "Publish signed VideoVault update feed"
+git push origin main
+```
+
+After GitHub Pages deploys, confirm the [live feed](https://emacth3creator.github.io/VideoVault/appcast.xml) advertises the new version and test **Check for Updates** in an older installed app.
+
 > **Note:** The app is not notarized. Distribute to other Macs as a zip; recipients may need to approve first launch. Notarization requires an Apple Developer account.
 
 ---
