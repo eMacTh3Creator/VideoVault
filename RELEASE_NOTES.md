@@ -1,3 +1,16 @@
+# VideoVault v1.3.4
+
+Correct first-start setup guidance on Intel Macs.
+
+- The current Homebrew macOS installer rejects Intel processors. Intel users now see a **Tool Setup…** guide with the built-in yt-dlp and ffmpeg installers.
+- Hide Homebrew commands on Intel unless an existing Homebrew installation is detected. Keep Homebrew installation instructions on Apple Silicon.
+- Show direct-installer errors alongside their buttons, so failures are actionable.
+- Keep the universal Intel/Apple Silicon app and automatic tool re-checking.
+
+Install the universal `Releases/VideoVault-v1.3.4-macOS.zip` manually. The signed updater feed is retained. The bundle is ad-hoc signed, not notarized. Homebrew installation instructions were checked against the current official installer and documentation; Homebrew was not installed on this Mac.
+
+---
+
 # VideoVault v1.3.3
 
 First-start setup guidance for macOS 13 and later, on Intel and Apple Silicon.

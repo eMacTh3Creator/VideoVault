@@ -66,18 +66,20 @@ Supports YouTube, Vimeo, Twitter/X, TikTok, Instagram, Reddit, Twitch, and [1000
 
 ### Option 1 — Download the release (recommended)
 
-1. Download **[VideoVault-v1.3.3-macOS.zip](https://github.com/eMacTh3Creator/VideoVault/raw/refs/heads/main/Releases/VideoVault-v1.3.3-macOS.zip)** from this repository
+1. Download **[VideoVault-v1.3.4-macOS.zip](https://github.com/eMacTh3Creator/VideoVault/raw/refs/heads/main/Releases/VideoVault-v1.3.4-macOS.zip)** from this repository
 2. Unzip and drag `VideoVault.app` to your `/Applications` folder
 3. **First launch:** right-click the app → **Open** (required once to bypass Gatekeeper on unsigned apps)
 4. Follow the onboarding to install yt-dlp and ffmpeg
 
-Version 1.2 and older need this one manual install to gain the updater. Version 1.3 and newer check for signed future releases automatically. Version 1.3.3 adds first-start Homebrew setup instructions, copyable commands, an Open Terminal button, and tool re-checking when you return to the app. Version 1.3.2 fixes backup recovery for unusual thumbnail extensions and adds Force Retry. It retains the background workers, asynchronous saves, and bounded progress updates from 1.3.1. Builds are universal (Intel and Apple Silicon); the bundle is ad-hoc signed, not Apple-notarized.
+Version 1.2 and older need this one manual install to gain the updater. Version 1.3 and newer check for signed future releases automatically. Version 1.3.4 corrects setup on Intel Macs by recommending the built-in installers and showing installation errors. Version 1.3.3 adds first-start Homebrew setup instructions, copyable commands, an Open Terminal button, and tool re-checking when you return to the app. Version 1.3.2 fixes backup recovery for unusual thumbnail extensions and adds Force Retry. It retains the background workers, asynchronous saves, and bounded progress updates from 1.3.1. Builds are universal (Intel and Apple Silicon); the bundle is ad-hoc signed, not Apple-notarized.
 
-### First-start Homebrew setup
+### First-start download tool setup
 
-If Terminal reports `command not found: brew`, choose **Homebrew Setup…** on the welcome screen. It provides the official installer command, an **Open Terminal** button, and instructions for adding Homebrew to your shell. Follow the installer's **Next steps**, then use the provided command to install yt-dlp and ffmpeg. Choose **Re-check Tools** after installation; VideoVault also refreshes detection when you return to the app.
+On Intel Macs, choose **Download & Install yt-dlp** and **Download & Install ffmpeg**, then **Re-check Tools**. The **Tool Setup…** guide explains these steps. Homebrew's current macOS installer rejects Intel processors; VideoVault's built-in installers do not require Homebrew. Existing Intel Homebrew installations may still be detected.
 
-The commands use `/usr/local/bin/brew` on Intel and `/opt/homebrew/bin/brew` on Apple Silicon, so installing the download tools does not depend on your Terminal's PATH. Homebrew remains optional: the existing **Download & Install** buttons are available too. See [Homebrew's official installation instructions](https://docs.brew.sh/Installation) for its current system requirements.
+On Apple Silicon, **Homebrew Setup…** provides the official installer command, **Open Terminal**, and shell setup instructions. Follow the installer's **Next steps**, then install yt-dlp and ffmpeg. Homebrew remains optional. See [Homebrew's current installation requirements](https://docs.brew.sh/Installation).
+
+VideoVault refreshes tool detection when you return to the app. Installer failures display their error beside the install button.
 
 ### Option 2 — Build from source
 
