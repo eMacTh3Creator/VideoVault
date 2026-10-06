@@ -1,3 +1,16 @@
+# VideoVault v1.4
+
+- Drag-to-Applications DMG with a custom installer background and an Applications shortcut.
+- A new signed update channel, with automatic checks beginning on first launch. Customers do not need scripts or signing keys.
+- Release packaging now produces and verifies the DMG and matching signed feed together. Publisher tooling prevents reusing a released version.
+- Keeps Intel and Apple Silicon support, direct tool installers, Homebrew guidance on Apple Silicon, and existing queue/settings compatibility.
+
+Install 1.4 manually once when upgrading from 1.3.x. This switches to the new publisher key; future updates are delivered through the app. The legacy feed is preserved. The installer is ad-hoc signed and not Apple-notarized.
+
+Verification: universal build, mounted-DMG bundle signatures, disk-image integrity, and public-key verification of the feed and DMG passed. Isolated Sparkle updates from build 7 to build 8 passed through both ZIP and DMG downloads; installed signatures were verified.
+
+---
+
 # VideoVault v1.3.4
 
 Correct first-start setup guidance on Intel Macs.

@@ -1,0 +1,40 @@
+name: Publish macOS installer
+on:
+  push:
+    branches: [main]
+    paths: ['Releases/*.dmg', '.github/workflows/release.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: publish-videovault
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read release version
+        run: |
+          VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' VideoVault/Info.plist)
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+      - name: Verify published update without a private key
+        run: |
+          swift script/verify_release.swift VideoVault/Info.plist docs/appcast-v2.xml "Releases/VideoVault-v${VERSION}-macOS.dmg"
+          hdiutil verify "Releases/VideoVault-v${VERSION}-macOS.dmg"
+          (cd Releases && shasum -a 256 -c "SHA256SUMS-v${VERSION}.txt")
+      - name: Create downloadable GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "v${VERSION}" >/dev/null 2>&1; then
+            echo 'Release already exists; refusing to replace published assets.'
+            exit 0
+          fi
+          python3 - <<'PY'
+          from pathlib import Path
+          text = Path('RELEASE_NOTES.md').read_text().split('\n---\n', 1)[0]
+          Path('release-body.md').write_text(text)
+          PY
+          gh release create "v${VERSION}" --target "$GITHUB_SHA" --title "VideoVault v${VERSION}" --notes-file release-body.md \
+            "Releases/VideoVault-v${VERSION}-macOS.dmg" "Releases/SHA256SUMS-v${VERSION}.txt"

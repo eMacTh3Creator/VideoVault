@@ -21,3 +21,6 @@ xcuserdata/
 # Temporary
 *.swp
 *~
+
+# Local release tools and signing/test staging
+work/

@@ -9,13 +9,13 @@
 	<key>CFBundleIdentifier</key>
 	<string>com.videovault.app</string>
 	<key>CFBundleVersion</key>
-	<string>7</string>
+	<string>8</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.3.4</string>
+	<string>1.4</string>
     <key>SUFeedURL</key>
-    <string>https://emacth3creator.github.io/VideoVault/appcast.xml</string>
+    <string>https://raw.githubusercontent.com/eMacTh3Creator/VideoVault/main/docs/appcast-v2.xml</string>
     <key>SUPublicEDKey</key>
-    <string>deYdDihdhdSkenmSWBLW0PsjKI0V4suRYfJtPiZ3/xE=</string>
+    <string>G4xvh5KvyiYlDTnliM+n0HeHKkNAGbzK4AHGUI6XeiE=</string>
     <key>SURequireSignedFeed</key>
     <true/>
     <key>SUVerifyUpdateBeforeExtraction</key>

@@ -21,6 +21,11 @@ final class AppUpdateService: NSObject, ObservableObject, SPUUpdaterDelegate {
 
     func start() {
         controller.startUpdater()
+        // Start the first check immediately, including on a fresh installation.
+        // Respect a user's choice to disable automatic update checks.
+        if controller.updater.automaticallyChecksForUpdates {
+            controller.updater.checkForUpdatesInBackground()
+        }
         automaticallyChecks = controller.updater.automaticallyChecksForUpdates
         automaticallyInstalls = controller.updater.automaticallyDownloadsUpdates
         controller.updater.publisher(for: \.canCheckForUpdates).receive(on: DispatchQueue.main).assign(to: &$canCheckForUpdates)

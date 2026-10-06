@@ -12,6 +12,10 @@
 		<data>
 		rHmq+m5xnTzsse5fP55OUZFnlio=
 		</data>
+		<key>Resources/Sparkle-LICENSE.txt</key>
+		<data>
+		mOjbjtiy4MLeRUA1svgpagNeQGQ=
+		</data>
 	</dict>
 	<key>files2</key>
 	<dict>
@@ -36,6 +40,13 @@
 			<key>hash2</key>
 			<data>
 			ao8AxdoCgX3sCbyWBBrLGSOBEz047Vl2ZhgTYiJqIMw=
+			</data>
+		</dict>
+		<key>Resources/Sparkle-LICENSE.txt</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			OJpOTpoy8Fl3WxOgbiWlkURboinSg40m3T58DEUSfP4=
 			</data>
 		</dict>
 	</dict>

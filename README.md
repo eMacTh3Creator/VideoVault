@@ -64,14 +64,18 @@ Supports YouTube, Vimeo, Twitter/X, TikTok, Instagram, Reddit, Twitch, and [1000
 
 ## Installation
 
-### Option 1 — Download the release (recommended)
+### Option 1 — Download the installer (recommended)
 
-1. Download **[VideoVault-v1.3.4-macOS.zip](https://github.com/eMacTh3Creator/VideoVault/raw/refs/heads/main/Releases/VideoVault-v1.3.4-macOS.zip)** from this repository
-2. Unzip and drag `VideoVault.app` to your `/Applications` folder
-3. **First launch:** right-click the app → **Open** (required once to bypass Gatekeeper on unsigned apps)
-4. Follow the onboarding to install yt-dlp and ffmpeg
+1. Download **[VideoVault-v1.4-macOS.dmg](https://github.com/eMacTh3Creator/VideoVault/raw/refs/heads/main/Releases/VideoVault-v1.4-macOS.dmg)**.
+2. Open the disk image and drag **VideoVault** to **Applications**.
+3. Eject the disk image, then open **VideoVault** from Applications.
+4. Use the built-in buttons to install yt-dlp and ffmpeg during setup.
 
-Version 1.2 and older need this one manual install to gain the updater. Version 1.3 and newer check for signed future releases automatically. Version 1.3.4 corrects setup on Intel Macs by recommending the built-in installers and showing installation errors. Version 1.3.3 adds first-start Homebrew setup instructions, copyable commands, an Open Terminal button, and tool re-checking when you return to the app. Version 1.3.2 fixes backup recovery for unusual thumbnail extensions and adds Force Retry. It retains the background workers, asynchronous saves, and bounded progress updates from 1.3.1. Builds are universal (Intel and Apple Silicon); the bundle is ad-hoc signed, not Apple-notarized.
+The app checks for signed updates from its first launch and can download and install future published releases. Users never need a script, signing key, or Keychain setup. Automatic updates can be changed in Settings. Updates wait for active downloads before relaunching.
+
+**Upgrading from 1.3.x:** install 1.4 manually once to join the new signed update channel. Your existing settings and download queue use the same app identifier. Subsequent releases use the updater. The old channel remains available for copies using the original publisher key.
+
+Universal Intel and Apple Silicon build for macOS 13+. The app is ad-hoc signed, not Apple-notarized; first launch may require approval under **System Settings → Privacy & Security**.
 
 ### First-start download tool setup
 
@@ -185,48 +189,24 @@ YouTube · Vimeo · Twitter/X · TikTok · Instagram · Reddit · Twitch · Dail
 
 ---
 
-## Building a Release
+## Building and publishing a release (maintainers only)
 
-Run the automated tests:
+Customers only install the DMG. Signing and publishing happen on a maintainer's Mac.
+
+The current release channel is `docs/appcast-v2.xml`, signed by the `videovault-v2` key in the publisher's login Keychain. Only its public key is embedded in the app. Keep the private key backed up securely when changing publishing Macs. Never commit it or distribute it to users. The original M5 key controls the legacy `docs/appcast.xml` feed only.
+
+Update `CFBundleShortVersionString`, increment `CFBundleVersion`, update the release notes, then run:
 
 ```bash
 VIDEOVAULT_TEST_ROOT=/tmp/VideoVault-tests swift test
+bash script/publish_release.sh
 ```
 
-For live official dependency installation checks, also set `VIDEOVAULT_VERIFY_DEPENDENCIES=1`. Download integration tests require yt-dlp and ffmpeg and use locally generated media.
+The publisher builds both architectures, creates the drag-to-Applications DMG, verifies the bundle and disk image, signs and verifies the update feed, then commits the versioned DMG and matching feed together. It refuses missing/mismatched keys, duplicate release versions, and uncommitted source changes. `git` push access is required on the publishing Mac. The GitHub release workflow verifies the signed DMG using only the public key, then automatically attaches it to a versioned GitHub Release. No private signing key is stored in GitHub Actions.
 
-To build the universal bundle, zip it, and generate the signed update feed:
+`VIDEOVAULT_PACKAGES` selects the Xcode package cache; `VIDEOVAULT_BUILD` selects the build folder. `VIDEOVAULT_SIGNING_ACCOUNT` defaults to `videovault-v2`. Packaging uses `dmgbuild` 1.6.5 in an isolated Python environment. `VIDEOVAULT_DMGBUILD` can select an existing installation. For an Apple Developer ID release, set `VIDEOVAULT_SIGN_IDENTITY` and add Apple's notarization before distribution; current releases are ad-hoc signed.
 
-```bash
-bash script/package_release.sh /tmp/VideoVault-release-artifacts
-```
-
-The Sparkle private signing key is stored in the maintainer's login Keychain under account `videovault`, never in this repository. Packaging requires that key and validates it against the app's public key. Upload the matching zip and checksums to the GitHub release before publishing the generated `docs/appcast.xml`. Do not edit a signed feed manually. See `script/prepare_update_test.sh` for an isolated local installation/relaunch test.
-
-### Publish a repository archive to the updater
-
-Committing a ZIP does not update Sparkle's feed. The original `videovault` signing key must be available in the publishing Mac's login Keychain. If the key is on another Mac, run this step there; a new key will not be trusted by existing installations.
-
-After pulling the latest `main`, use the already published archive:
-
-```bash
-bash script/prepare_published_update.sh /tmp/VideoVault-signed-feed
-```
-
-Set `VIDEOVAULT_PACKAGES` to your Xcode cloned packages directory if it differs from `/tmp/VideoVault-packages`. The script checks the existing signing key and signed feed, downloads the exact committed ZIP, verifies its bytes, then generates and verifies a signed feed. It stops before changing the feed when the key is missing or mismatched.
-
-Publish the verified result:
-
-```bash
-cp /tmp/VideoVault-signed-feed/appcast.xml docs/appcast.xml
-git add docs/appcast.xml
-git commit -m "Publish signed VideoVault update feed"
-git push origin main
-```
-
-After GitHub Pages deploys, confirm the [live feed](https://emacth3creator.github.io/VideoVault/appcast.xml) advertises the new version and test **Check for Updates** in an older installed app.
-
-> **Note:** The app is not notarized. Distribute to other Macs as a zip; recipients may need to approve first launch. Notarization requires an Apple Developer account.
+To package without publishing, use `bash script/package_release.sh /tmp/VideoVault-release-artifacts`. To exercise update installation without touching `/Applications`, use `script/prepare_update_test.sh` with a signed app and a new temporary directory, then run Sparkle's test CLI against the isolated copy.
 
 ---
 
