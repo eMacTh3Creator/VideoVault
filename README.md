@@ -5,11 +5,12 @@
 <h1 align="center">VideoVault</h1>
 
 <p align="center">
-  A native macOS app for downloading videos from YouTube, Vimeo, Twitter/X, TikTok, Reddit, and 1000+ other sites.
+  Native macOS and Windows apps for downloading video and audio with yt-dlp.
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/macOS-13.0%2B-blue?logo=apple" alt="macOS 13.0+">
+  <img src="https://img.shields.io/badge/Windows-11%20x64%20%2B%20ARM64-blue" alt="Windows 11 x64 and ARM64 preview">
   <img src="https://img.shields.io/badge/Swift-5.9-orange?logo=swift" alt="Swift 5.9">
   <img src="https://img.shields.io/badge/SwiftUI-native-purple" alt="SwiftUI">
   <img src="https://img.shields.io/github/v/release/eMacTh3Creator/VideoVault?color=green" alt="Latest Release">
@@ -21,6 +22,8 @@
 ## Overview
 
 VideoVault is a clean, native macOS download manager built on top of [yt-dlp](https://github.com/yt-dlp/yt-dlp). Paste in one URL or hundreds — VideoVault handles fetching, queuing, and downloading in the background while you get on with your day.
+
+The native C# / .NET / WPF Windows implementation is now available as an unsigned development preview alongside the Mac release. [Choose a platform on the website](https://emacth3creator.github.io/VideoVault/#downloads), or open the [v1.4 release](https://github.com/eMacTh3Creator/VideoVault/releases/tag/v1.4).
 
 Supports YouTube, Vimeo, Twitter/X, TikTok, Instagram, Reddit, Twitch, and [1000+ other sites](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md).
 
@@ -63,6 +66,19 @@ Supports YouTube, Vimeo, Twitter/X, TikTok, Instagram, Reddit, Twitch, and [1000
 ---
 
 ## Installation
+
+### Windows Development Preview
+
+| Computer | Installer | Portable |
+|---|---|---|
+| Intel / AMD x64 | [Windows x64 Setup](https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.4/VideoVault-win-x64-Setup.exe) | [x64 ZIP](https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.4/VideoVault-win-x64-Portable.zip) |
+| Snapdragon / Windows ARM64 / Parallels on Apple Silicon | [Windows ARM64 Setup](https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.4/VideoVault-win-arm64-Setup.exe) | [ARM64 ZIP](https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.4/VideoVault-win-arm64-Portable.zip) |
+
+Run the matching installer, or extract the portable ZIP into its own folder and run `VideoVault.Windows.exe`. The .NET runtime is included. First-run tool installation needs internet access. These Windows 11 builds are unsigned and may trigger SmartScreen; no Windows security protections are disabled.
+
+Windows v1.4.0 includes the corrected Settings display and 42 passing regression/local-media checks in Windows 11 ARM64. Native x64 hardware and installed old-to-new automatic-update validation remain pending. Portable copies do not install application updates. See the [Windows guide](VideoVault-Windows/README.md) and [verification results](VideoVault-Windows/TEST_RESULTS.md).
+
+The remaining usage and settings documentation below describes the Mac app; Windows-specific controls and build instructions are in the Windows guide.
 
 ### Option 1 — Download the installer (recommended)
 

@@ -1,0 +1,49 @@
+<Window x:Class="VideoVault.Windows.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="VideoVault Settings" Width="700" Height="790" MinWidth="420" MinHeight="360"
+        Style="{StaticResource {x:Type Window}}" WindowStartupLocation="CenterOwner">
+    <Window.Resources>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="{StaticResource InkBrush}" /></Style>
+        <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
+            <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="ContentTemplate"><Setter.Value><DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap" /></DataTemplate></Setter.Value></Setter>
+        </Style>
+    </Window.Resources>
+    <Grid Margin="24">
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+        <StackPanel><TextBlock x:Name="SettingsHeading" Text="Make it yours." FontSize="28" FontWeight="SemiBold" /><TextBlock Text="Downloads, recovery, and the way VideoVault works in Windows." Foreground="{StaticResource MutedBrush}" Margin="0,8,0,20" TextWrapping="Wrap" /></StackPanel>
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0"><Button Content="Cancel" Click="Cancel_Click" IsCancel="True" /><Button x:Name="SaveButton" Content="Save settings" Style="{StaticResource AccentButton}" Click="Save_Click" IsDefault="True" /></StackPanel>
+        <ScrollViewer x:Name="SettingsScroller" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" CanContentScroll="False">
+            <StackPanel Margin="0,0,16,0">
+                <TextBlock Text="DESTINATION" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" />
+                <DockPanel Margin="0,8,0,16"><Button Content="Browse..." DockPanel.Dock="Right" Click="BrowseFolder_Click" Margin="10,0,0,0" /><TextBox Text="{Binding DownloadPath, UpdateSourceTrigger=PropertyChanged}" /></DockPanel>
+                <TextBlock Text="Default quality" /><ComboBox x:Name="DefaultFormatCombo" Margin="0,6,0,14" DisplayMemberPath="Name" SelectedValuePath="Format" SelectedValue="{Binding DefaultFormat}" />
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="90" /></Grid.ColumnDefinitions><TextBlock Text="Independent downloads at once (1-8)" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,12,0" /><ComboBox Grid.Column="1" ItemsSource="{Binding ConcurrencyOptions, RelativeSource={RelativeSource AncestorType=Window}}" SelectedItem="{Binding MaxConcurrentDownloads}" /></Grid>
+                <CheckBox Content="Organize downloads by source" IsChecked="{Binding OrganizeBySource}" />
+                <CheckBox Content="Skip duplicates in the destination folder" IsChecked="{Binding SkipDuplicates}" />
+                <CheckBox Content="Embed optional metadata" IsChecked="{Binding EmbedMetadata}" />
+                <CheckBox Content="Embed optional thumbnail" IsChecked="{Binding EmbedThumbnail}" />
+                <CheckBox Content="Retry temporary network errors (up to twice)" IsChecked="{Binding AutoRetryFailed}" />
+                <CheckBox Content="Try an independent backup downloader after technical failures" IsChecked="{Binding EnableFallbackDownloader}" />
+                <TextBlock Text="Force Retry skips optional metadata and thumbnail. Recovery never bypasses DRM, login, or website access restrictions." TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource MutedBrush}" Margin="0,6,0,16" />
+                <TextBlock Text="WINDOWS INTEGRATION" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" />
+                <CheckBox Content="Closing the window keeps VideoVault in the system tray" IsChecked="{Binding CloseToTray}" />
+                <CheckBox Content="Notify when a download completes" IsChecked="{Binding NotificationsEnabled}" />
+                <CheckBox Content="Start VideoVault when I sign in to Windows" IsChecked="{Binding LaunchAtLogin}" />
+                <TextBlock Text="UPDATES &amp; DOWNLOAD TOOLS" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,14,0,0" />
+                <CheckBox Content="Automatically check and update yt-dlp on launch" IsChecked="{Binding AutomaticallyUpdateYtDlp}" />
+                <CheckBox Content="Automatically check for app updates" IsChecked="{Binding AutomaticallyCheckAppUpdates}" />
+                <WrapPanel Margin="0,8,0,16"><Button Content="Install / repair tools" Click="InstallTools_Click" /><Button Content="Update yt-dlp" Click="UpdateYtDlp_Click" /><Button Content="Check app updates" Click="AppUpdates_Click" /></WrapPanel>
+                <TextBlock Text="yt-dlp executable" /><TextBox Text="{Binding YtDlpPath, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,12" />
+                <TextBlock Text="FFmpeg executable" /><TextBox Text="{Binding FFmpegPath, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,12" />
+                <TextBlock Text="Streamlink executable" /><TextBox Text="{Binding StreamlinkPath, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,12" />
+                <CheckBox Content="Read cookies from my browser when needed" IsChecked="{Binding UseBrowserCookies}" />
+                <ComboBox ItemsSource="{Binding BrowserOptions}" SelectedItem="{Binding CookiesBrowser}" Margin="0,0,0,10" />
+                <TextBlock Text="Cookies stay on this computer. Your browser may need to be closed to allow cookie access." TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" FontSize="12" />
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Window>

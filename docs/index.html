@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="VideoVault is a native macOS download manager for YouTube, Vimeo, TikTok, Reddit, Twitter/X, and 1000+ other sites powered by yt-dlp.">
+  <meta name="description" content="VideoVault is a native video and audio download manager for macOS and Windows, powered by yt-dlp. Download for Mac, Windows x64, or Windows ARM64.">
   <meta name="theme-color" content="#160a0f">
   <meta property="og:title" content="VideoVault">
-  <meta property="og:description" content="A native macOS app for downloading videos from YouTube, Vimeo, TikTok, Reddit, Twitter/X, and 1000+ other sites.">
+  <meta property="og:description" content="Native video and audio downloads for Mac and Windows. Persistent queues, duplicate protection, and quick-paste desktop controls.">
   <meta property="og:type" content="website">
   <meta property="og:image" content="assets/icon-512.png">
-  <title>VideoVault - Native macOS video downloader</title>
+  <title>VideoVault - Native video downloader for Mac and Windows</title>
   <link rel="icon" href="assets/icon-256.png">
   <style>
     :root {
@@ -443,6 +443,13 @@
       margin: 0 0 18px;
       font-size: 1.35rem;
     }
+    .download-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+    .platform-card p { color: var(--muted); line-height: 1.7; }
+    .platform-card .actions { margin-top: 24px; }
+    .platform-badge { display: inline-block; margin-bottom: 18px; color: var(--accent-3); font-size: 0.76rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+    .download-extra { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 20px; color: var(--accent-3); font-size: 0.86rem; }
+    .download-extra a { text-decoration: underline; text-underline-offset: 4px; }
+    .button:focus-visible { outline: 3px solid var(--accent-3); outline-offset: 4px; }
     .stack {
       display: grid;
       gap: 14px;
@@ -582,6 +589,7 @@
 
     @media (max-width: 1020px) {
       .hero-grid,
+      .download-grid,
       .split,
       .release-band {
         grid-template-columns: 1fr;
@@ -631,7 +639,7 @@
       <div class="nav-links" aria-label="Primary navigation">
         <a href="#features">Features</a>
         <a href="#formats">Formats</a>
-        <a href="#release">Release</a>
+        <a href="#downloads">Downloads</a>
         <a href="#install">Install</a>
       </div>
       <a class="button quiet" href="https://github.com/eMacTh3Creator/VideoVault">GitHub</a>
@@ -646,14 +654,14 @@
             Save the video.
             <span class="hero-mark">Keep the workflow.</span>
           </h1>
-          <p class="lead">VideoVault is a native macOS app for downloading videos from YouTube, Vimeo, TikTok, Reddit, Twitter/X, and 1000+ other sites with queueing, retries, smart format fallback, and a clean desktop UI built around <a href="https://github.com/yt-dlp/yt-dlp">yt-dlp</a>.</p>
+          <p class="lead">VideoVault brings video and audio downloads to your desktop with native apps for <strong>Mac and Windows</strong>. Persistent queues, duplicate protection, and independent download workers keep your workflow moving, powered by <a href="https://github.com/yt-dlp/yt-dlp">yt-dlp</a>.</p>
           <div class="actions">
-            <a class="button primary" href="https://github.com/eMacTh3Creator/VideoVault/raw/refs/heads/main/Releases/VideoVault-v1.4-macOS.dmg">Download latest release</a>
+            <a class="button primary" href="#downloads">Choose your download</a>
             <a class="button quiet" href="https://github.com/eMacTh3Creator/VideoVault">View source</a>
           </div>
           <div class="proof" aria-label="Project highlights">
             <span><i class="dot"></i>macOS 13+</span>
-            <span><i class="dot"></i>SwiftUI native</span>
+            <span><i class="dot"></i>Windows 11 x64 + ARM64 preview</span>
             <span><i class="dot"></i>1000+ supported sites</span>
           </div>
         </div>
@@ -709,11 +717,46 @@
       </div>
     </section>
 
+    <section id="downloads">
+      <div class="shell">
+        <div class="section-title">
+          <h2>Your desktop. Your download.</h2>
+          <p>Mac and Windows downloads are together in the v1.4 release. Choose the platform and processor that match your computer.</p>
+        </div>
+        <div class="download-grid">
+          <article class="panel platform-card">
+            <span class="platform-badge">macOS v1.4</span>
+            <h3>One download for every Mac.</h3>
+            <p>Universal Intel and Apple Silicon app for macOS 13 or later. Native SwiftUI interface and signed Sparkle update feeds.</p>
+            <div class="actions"><a class="button primary" href="https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.4/VideoVault-v1.4-macOS.dmg">Download Mac DMG</a></div>
+            <p>Open the disk image and drag VideoVault to Applications. This build is ad-hoc signed, not Apple-notarized; first launch may require approval in Privacy &amp; Security.</p>
+            <div class="download-extra"><a href="https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.4/SHA256SUMS-v1.4.txt">Mac checksum</a></div>
+          </article>
+          <article class="panel platform-card">
+            <span class="platform-badge">Windows v1.4.0 development preview</span>
+            <h3>Built for Windows, not wrapped in a browser.</h3>
+            <p>Native C# / .NET / WPF app for Windows 11. Choose x64 for Intel/AMD PCs, or ARM64 for Snapdragon PCs and Windows on Apple Silicon in Parallels. No separate .NET installation is needed.</p>
+            <div class="actions">
+              <a class="button primary" href="https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.4/VideoVault-win-x64-Setup.exe">Windows x64 installer</a>
+              <a class="button quiet" href="https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.4/VideoVault-win-arm64-Setup.exe">Windows ARM64 installer</a>
+            </div>
+            <div class="download-extra">
+              <a href="https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.4/VideoVault-win-x64-Portable.zip">x64 portable ZIP</a>
+              <a href="https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.4/VideoVault-win-arm64-Portable.zip">ARM64 portable ZIP</a>
+              <a href="https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.4/SHA256SUMS-win-x64.txt">x64 checksums</a>
+              <a href="https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.4/SHA256SUMS-win-arm64.txt">ARM64 checksums</a>
+            </div>
+            <p><strong>Preview notice:</strong> These builds are unsigned and may trigger SmartScreen. Tested in Windows 11 ARM64 with 42 passing checks. Native x64 hardware and installed old-to-new app updates still need validation. Portable builds do not install app updates.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
     <section id="features">
       <div class="shell">
         <div class="section-title">
           <h2>Built like a download manager, not a URL textbox.</h2>
-          <p>VideoVault wraps yt-dlp in a native Mac workflow with queue persistence, detail views, smarter fallbacks, and settings that matter for real-world downloads.</p>
+          <p>VideoVault wraps yt-dlp in native Mac and Windows workflows with queue persistence, detail views, supported recovery paths, and settings that matter for real-world downloads.</p>
         </div>
 
         <div class="feature-grid">
@@ -735,7 +778,7 @@
           <article class="feature">
             <span class="eyebrow">Duplicates</span>
             <h3>Keep one good copy.</h3>
-            <p>Skip indexed repeat downloads and find exact-content duplicates throughout your destination folder. Safely move selected extra copies to Trash.</p>
+            <p>Skip indexed repeat downloads and find exact-content duplicates throughout your destination folder. Safely move selected extra copies to Trash or the Windows Recycle Bin.</p>
           </article>
           <article class="feature">
             <span class="eyebrow">Organization</span>
@@ -744,8 +787,8 @@
           </article>
           <article class="feature">
             <span class="eyebrow">Native</span>
-            <h3>Designed for macOS first.</h3>
-            <p>A Home button and live menu bar counts keep you in control. Quick paste best video or original-quality audio without bringing the window forward.</p>
+            <h3>At home on either desktop.</h3>
+            <p>A Home button and live Mac menu bar or Windows tray counts keep you in control. Quick paste best video or original-quality audio without bringing the window forward.</p>
           </article>
         </div>
       </div>
@@ -785,15 +828,16 @@ yt-dlp supported-sites matrix.</code></pre>
         <div class="release-band">
           <div>
             <h2>Current public release</h2>
-            <p>Download the disk image, open it, and drag <strong>VideoVault.app</strong> into <code>/Applications</code>. The app is ad-hoc signed; first launch may require approval in Privacy &amp; Security.</p>
+            <p>Version 1.4 includes the universal Mac installer and the first Windows x64 and ARM64 development previews. The Windows builds include the corrected Settings display and independent background workers.</p>
             <div class="actions">
-              <a class="button primary" href="https://github.com/eMacTh3Creator/VideoVault/raw/refs/heads/main/Releases/VideoVault-v1.4-macOS.dmg">Open latest release</a>
+              <a class="button primary" href="https://github.com/eMacTh3Creator/VideoVault/releases/tag/v1.4">Open latest release</a>
               <a class="button quiet" href="https://github.com/eMacTh3Creator/VideoVault/releases">Release notes</a>
             </div>
           </div>
 
           <ul class="release-list">
             <li><strong>v1.4</strong><br>Automatic recovery from malformed thumbnail filenames and a Force Retry action for failed downloads. Retains responsive background workers. Universal Intel and Apple Silicon build.</li>
+            <li><strong>Windows preview</strong><br>Self-contained x64 and ARM64 installers, portable builds, native tray controls, verified tool setup, duplicate protection, and responsive Settings. Unsigned; further update and x64 hardware validation is pending.</li>
             <li><strong>Signed app updates</strong><br>Sparkle checks and installs future releases. Install v1.4 manually once to join the new signed update channel. Future published releases arrive through the app.</li>
             <li><strong>Home and menu bar</strong><br>Return home without deleting items. See live counts and quick paste video or audio from the menu bar.</li>
             <li><strong>Clear failure handling</strong><br>Timeouts prevent stuck info lookups; retries and supported fallbacks handle technical failures without bypassing website restrictions.</li>
@@ -806,24 +850,24 @@ yt-dlp supported-sites matrix.</code></pre>
       <div class="shell">
         <div class="section-title">
           <h2>Install in a few minutes.</h2>
-          <p>The app is simple to get running: download the release, clear the first-launch warning once, then let onboarding detect or install its helper tools.</p>
+          <p>Choose your platform, install the app, then let VideoVault detect or install its helper tools. Internet access is needed for first-run tool setup.</p>
         </div>
 
         <div class="steps">
           <article class="step">
             <div class="step-num">1</div>
             <h3>Download</h3>
-            <p>Download the current macOS disk image for VideoVault.</p>
+            <p>Choose the Mac DMG, Windows x64 installer, or Windows ARM64 installer above.</p>
           </article>
           <article class="step">
             <div class="step-num">2</div>
-            <h3>Move</h3>
-            <p>Open the disk image and drag <strong>VideoVault.app</strong> into your <code>/Applications</code> folder.</p>
+            <h3>Install</h3>
+            <p>On Mac, drag <strong>VideoVault.app</strong> to Applications. On Windows, run the installer, or extract the portable ZIP into its own folder.</p>
           </article>
           <article class="step">
             <div class="step-num">3</div>
             <h3>Open once</h3>
-            <p>Because the app is unsigned, first launch may require right-clicking the app and choosing <strong>Open</strong>.</p>
+            <p>Launch VideoVault. Mac builds are not notarized and Windows previews are unsigned, so your operating system may show a first-launch security warning.</p>
           </article>
           <article class="step">
             <div class="step-num">4</div>
@@ -841,8 +885,9 @@ yt-dlp supported-sites matrix.</code></pre>
     <section id="windows">
       <div class="shell split">
         <div class="panel">
-          <h3>Windows port in progress</h3>
-          <p style="margin:0;color:var(--muted);line-height:1.7;">A native Windows port using <strong>C# / .NET / WPF</strong> is planned separately. Version 1.4 is a macOS release; no Windows binary is included.</p>
+          <h3>A native Windows preview, ready to try.</h3>
+          <p style="margin:0;color:var(--muted);line-height:1.7;">The <strong>C# / .NET 10 / WPF</strong> implementation is now downloadable for x64 and ARM64. It includes tray quick-paste actions, Home navigation, duplicate finding, verified tool installation, and technical-failure recovery. Download restrictions and DRM are not bypassed.</p>
+          <div class="actions"><a class="button primary" href="#downloads">Windows downloads</a><a class="button quiet" href="https://github.com/eMacTh3Creator/VideoVault/blob/main/VideoVault-Windows/README.md">Windows guide</a></div>
         </div>
         <div class="panel">
           <h3>Repository links</h3>
@@ -858,7 +903,7 @@ yt-dlp supported-sites matrix.</code></pre>
 
   <footer>
     <div class="shell footer-inner">
-      <div>VideoVault is MIT licensed and built around a native macOS workflow powered by yt-dlp.</div>
+      <div>VideoVault is MIT licensed. Native Mac and Windows apps, powered by yt-dlp.</div>
       <div class="footer-links">
         <a href="https://github.com/eMacTh3Creator/VideoVault">GitHub</a>
         <a href="https://github.com/eMacTh3Creator/VideoVault/releases">Releases</a>

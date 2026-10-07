@@ -1,0 +1,43 @@
+name: Validate Windows
+on:
+  push:
+    branches: [main]
+    paths: ['VideoVault-Windows/**', '.github/workflows/windows.yml']
+  pull_request:
+    paths: ['VideoVault-Windows/**', '.github/workflows/windows.yml']
+  workflow_dispatch:
+jobs:
+  test-and-package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Windows regression tests
+        working-directory: VideoVault-Windows
+        run: dotnet run --project VideoVault.Windows.Tests -c Release
+      - name: Install verified download dependencies
+        working-directory: VideoVault-Windows
+        run: dotnet run --project VideoVault.Windows.Tests -c Release -- --install-tools
+      - name: Live download and conversion tests
+        working-directory: VideoVault-Windows
+        run: dotnet run --project VideoVault.Windows.Tests -c Release -- --integration
+      - name: Package Windows x64
+        run: ./VideoVault-Windows/scripts/build-release.ps1 -Runtime win-x64
+      - name: Package Windows ARM64
+        run: ./VideoVault-Windows/scripts/build-release.ps1 -Runtime win-arm64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VideoVault-Windows
+          path: |
+            VideoVault-Windows/artifacts/win-x64/*.exe
+            VideoVault-Windows/artifacts/win-x64/*.zip
+            VideoVault-Windows/artifacts/win-x64/*.nupkg
+            VideoVault-Windows/artifacts/win-x64/*.json
+            VideoVault-Windows/artifacts/win-x64/SHA256SUMS
+            VideoVault-Windows/artifacts/win-arm64/*.exe
+            VideoVault-Windows/artifacts/win-arm64/*.zip
+            VideoVault-Windows/artifacts/win-arm64/*.nupkg
+            VideoVault-Windows/artifacts/win-arm64/*.json
+            VideoVault-Windows/artifacts/win-arm64/SHA256SUMS

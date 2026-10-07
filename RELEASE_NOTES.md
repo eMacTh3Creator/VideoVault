@@ -9,6 +9,29 @@ Install 1.4 manually once when upgrading from 1.3.x. This switches to the new pu
 
 Verification: universal build, mounted-DMG bundle signatures, disk-image integrity, and public-key verification of the feed and DMG passed. Isolated Sparkle updates from build 7 to build 8 passed through both ZIP and DMG downloads; installed signatures were verified.
 
+## Windows v1.4.0 Development Preview
+
+The first native C# / .NET 10 / WPF Windows builds are available alongside the existing Mac installer. The Mac assets and signed update channel are unchanged.
+
+| Platform | Installer | Portable |
+|---|---|---|
+| Windows x64 (Intel / AMD) | [x64 Setup](https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.4/VideoVault-win-x64-Setup.exe) | [x64 ZIP](https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.4/VideoVault-win-x64-Portable.zip) |
+| Windows ARM64 (Snapdragon / Parallels on Apple Silicon) | [ARM64 Setup](https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.4/VideoVault-win-arm64-Setup.exe) | [ARM64 ZIP](https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.4/VideoVault-win-arm64-Portable.zip) |
+
+- Self-contained runtime: Windows users do not need to install .NET separately. Run the installer, or extract the portable ZIP and run `VideoVault.Windows.exe`.
+- Independent asynchronous downloads, bounded metadata timeouts, responsive progress updates, queue persistence, and 1-8 simultaneous jobs.
+- Verified setup of yt-dlp, FFmpeg/ffprobe, Deno, and Streamlink, with automatic yt-dlp checks on launch.
+- Duplicate protection and content-based duplicate finding with safe Recycle Bin handling.
+- Home navigation and tray active/queued/failed statistics, quick-paste best video/audio, and queue controls.
+- Fixed Settings rendering: readable labels and buttons, wrapping options, small-screen scrolling, and saved-quality selection.
+- Force Retry and supported backup paths preserve DRM, login, and website access restrictions.
+
+**Verification:** 42 regression/local-media integration checks passed in Windows 11 ARM64 under Parallels, including actual downloads and audio conversion. ARM64 and x64 self-contained builds and packaging succeeded. Settings was visually checked in the VM.
+
+**Development preview limitations:** Windows builds are unsigned and may trigger SmartScreen. Native x64 hardware and installed old-to-new application-update validation remain pending. Portable builds do not install app updates. Architecture-specific Velopack update packages and feeds are included for installed builds; this is not a claim that an end-to-end installed update has been tested.
+
+Download checksum files are provided separately for x64 and ARM64. See the [Windows guide](https://github.com/eMacTh3Creator/VideoVault/blob/main/VideoVault-Windows/README.md) for details.
+
 ---
 
 # VideoVault v1.3.4

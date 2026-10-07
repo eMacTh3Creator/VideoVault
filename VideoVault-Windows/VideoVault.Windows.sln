@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VideoVault.Windows", "VideoVault.Windows\VideoVault.Windows.csproj", "{26A76E6E-12F8-4A5D-B91A-95186C90F113}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VideoVault.Windows.Tests", "VideoVault.Windows.Tests\VideoVault.Windows.Tests.csproj", "{C833E546-7750-4F80-8132-53360D0409AA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{26A76E6E-12F8-4A5D-B91A-95186C90F113}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{26A76E6E-12F8-4A5D-B91A-95186C90F113}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{26A76E6E-12F8-4A5D-B91A-95186C90F113}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{26A76E6E-12F8-4A5D-B91A-95186C90F113}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C833E546-7750-4F80-8132-53360D0409AA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C833E546-7750-4F80-8132-53360D0409AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C833E546-7750-4F80-8132-53360D0409AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C833E546-7750-4F80-8132-53360D0409AA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E8B64E65-0429-4E33-943A-D1C64524960A}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,14 @@
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+const source = fileURLToPath(new URL('../../VideoVault/Assets.xcassets/AppIcon.appiconset/icon_256x256.png', import.meta.url));
+const target = fileURLToPath(new URL('../VideoVault.Windows/Assets/VideoVault.ico', import.meta.url));
+const png = readFileSync(source);
+const header = Buffer.alloc(22);
+header.writeUInt16LE(1, 2);
+header.writeUInt16LE(1, 4);
+header.writeUInt16LE(1, 10);
+header.writeUInt16LE(32, 12);
+header.writeUInt32LE(png.length, 14);
+header.writeUInt32LE(22, 18);
+mkdirSync(fileURLToPath(new URL('../VideoVault.Windows/Assets/', import.meta.url)), { recursive: true });
+writeFileSync(target, Buffer.concat([header, png]));

@@ -7,3 +7,16 @@
 </ul>
 <p>Open the disk image, drag VideoVault to Applications, then launch it from Applications. Versions 1.3.x require this one manual installation to join the new update channel.</p>
 <p>The app is ad-hoc signed and is not Apple-notarized; macOS may require approval in Privacy &amp; Security for first launch.</p>
+
+<h2>Windows 1.4.0 development preview</h2>
+<ul>
+<li>Native C# / .NET 10 / WPF application, with self-contained x64 and ARM64 installers and portable ZIPs alongside the Mac release.</li>
+<li>Independent download processes, bounded metadata timeouts, responsive progress updates, and persistent queues.</li>
+<li>Verified first-run yt-dlp, FFmpeg, Deno, and Streamlink setup; automatic yt-dlp checks on launch.</li>
+<li>Destination duplicate protection, content-based duplicate finder, and safe Recycle Bin handling.</li>
+<li>Home navigation and system-tray active/queued/failed counts, quick-paste best video/audio, and queue controls.</li>
+<li>Corrected Settings labels and buttons, wrapping options, small-screen scrolling, and saved-quality selection.</li>
+<li>Force Retry and supported independent recovery paths preserve DRM, login, and access restrictions.</li>
+</ul>
+<p><strong>Unsigned development builds:</strong> Windows SmartScreen may show a warning. Windows 11 ARM64 regression and local-media integration tests passed 42 checks. Native x64 hardware and installed old-to-new app-update validation remain pending. Portable copies do not install app updates.</p>
+<p><a href="index.html#downloads">Choose a download</a> or <a href="https://github.com/eMacTh3Creator/VideoVault/releases/tag/v1.4">open the combined GitHub release</a>.</p>

@@ -24,3 +24,10 @@ xcuserdata/
 
 # Local release tools and signing/test staging
 work/
+
+# Windows / .NET
+.vs/
+**/bin/
+**/obj/
+*.user
+*.suo
