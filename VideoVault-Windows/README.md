@@ -53,6 +53,6 @@ Unsigned installers can trigger Windows SmartScreen. Production Authenticode sig
 
 ## Verification Status
 
-The initial implementation has been built and tested in Windows 11 ARM64 under Parallels. The regression and local-media integration tests passed. Native x64 hardware and installed old-to-new automatic-update validation remain release gates; successfully cross-compiling x64 is not a claim of hardware testing.
+The implementation has been built and tested in Windows 11 ARM64 under Parallels with 42 passing regression/local-media integration checks. GitHub validation also passed on a Windows Server 2025 x64 runner, including the 42-check integration suite and packaging for both architectures. The unsigned development previews are included in GitHub release v1.4. Physical x64 PC testing and installed old-to-new automatic-update validation remain production release gates.
 
 Application source is covered by the repository's root `LICENSE`. Download dependencies retain their upstream licenses and are fetched separately from official releases. FFmpeg GPL build license/source information is preserved in its extracted dependency directory.
