@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="VideoVault is a native video and audio download manager for macOS and Windows, powered by yt-dlp. Download for Mac, Windows x64, or Windows ARM64.">
+  <meta name="description" content="VideoVault is a native video and audio download manager for macOS and Windows, uses yt-dlp. Download for Mac, Windows x64, or Windows ARM64.">
   <meta name="theme-color" content="#160a0f">
   <meta property="og:title" content="VideoVault">
   <meta property="og:description" content="Native video and audio downloads for Mac and Windows. Persistent queues, duplicate protection, and quick-paste desktop controls.">
@@ -660,10 +660,10 @@
       <div class="shell hero-grid">
         <div>
           <h1>
-            Save the video.
-            <span class="hero-mark">Keep the workflow.</span>
+            Download videos
+            <span class="hero-mark">and audio.</span>
           </h1>
-          <p class="lead">VideoVault brings video and audio downloads to your desktop with native apps for <strong>Mac and Windows</strong>. Persistent queues, duplicate protection, and independent download workers keep your workflow moving, powered by <a href="https://github.com/yt-dlp/yt-dlp">yt-dlp</a>.</p>
+          <p class="lead">Download videos or audio on <strong>Mac and Windows</strong>. Paste links, choose a format, and let the queue run in the background. VideoVault saves your queue and helps you find duplicate downloads. It uses <a href="https://github.com/yt-dlp/yt-dlp">yt-dlp</a>.</p>
           <div class="actions">
             <a class="button primary" href="#downloads">Choose your download</a>
             <a class="button quiet" href="https://github.com/eMacTh3Creator/VideoVault">View source</a>
@@ -695,8 +695,8 @@
               <div class="preview-main">
                 <div class="hero-panel">
                   <div class="label">Best Quality Video</div>
-                  <h3>Paste a URL and let the queue do the work.</h3>
-                  <p>Smart fallback keeps downloads moving when exact formats are missing.</p>
+                  <h3>Paste links and choose a format.</h3>
+                  <p>If your chosen resolution is unavailable, VideoVault uses the next available option.</p>
                 </div>
                 <div class="detail-panel">
                   <div class="error-box">YouTube-ready behavior with cookie support, realistic browser headers, ffmpeg merging, and retry-friendly format selection.</div>
@@ -729,13 +729,13 @@
     <section id="downloads">
       <div class="shell">
         <div class="section-title">
-          <h2>Your desktop. Your download.</h2>
+          <h2>Download VideoVault</h2>
           <p>Mac and Windows downloads are together in the v1.4 release. Choose the platform and processor that match your computer.</p>
         </div>
         <div class="download-grid">
           <article class="panel platform-card">
             <span class="platform-badge">macOS v1.4</span>
-            <h3>One download for every Mac.</h3>
+            <h3>Mac</h3>
             <p>Universal Intel and Apple Silicon app for macOS 13 or later. Native SwiftUI interface and signed Sparkle update feeds.</p>
             <div class="actions"><a class="button primary" href="https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.4/VideoVault-v1.4-macOS.dmg">Download Mac DMG</a></div>
             <p>Open the disk image and drag VideoVault to Applications. This build is ad-hoc signed, not Apple-notarized; first launch may require approval in Privacy &amp; Security.</p>
@@ -743,7 +743,7 @@
           </article>
           <article class="panel platform-card">
             <span class="platform-badge">Windows v1.4.0 development preview</span>
-            <h3>Built for Windows, not wrapped in a browser.</h3>
+            <h3>Windows</h3>
             <p>Native C# / .NET / WPF app for Windows 11. Choose x64 for Intel/AMD PCs, or ARM64 for Snapdragon PCs and Windows on Apple Silicon in Parallels. No separate .NET installation is needed.</p>
             <div class="actions">
               <a class="button primary" href="https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.4/VideoVault-win-x64-Setup.exe">Windows x64 installer</a>
@@ -764,40 +764,40 @@
     <section id="features">
       <div class="shell">
         <div class="section-title">
-          <h2>Built like a download manager, not a URL textbox.</h2>
-          <p>VideoVault wraps yt-dlp in native Mac and Windows workflows with queue persistence, detail views, supported recovery paths, and settings that matter for real-world downloads.</p>
+          <h2>What VideoVault does</h2>
+          <p>Queue downloads, choose video or audio formats, organize files by site, and retry failed items.</p>
         </div>
 
         <div class="feature-grid">
           <article class="feature">
             <span class="eyebrow">Batch</span>
-            <h3>Queue one link or a hundred.</h3>
-            <p>Paste unlimited URLs, keep them in a persistent queue, and let VideoVault process them in the background without freezing the app.</p>
+            <h3>Queue multiple links</h3>
+            <p>Paste several links at once. The queue is saved between sessions, and downloads run in the background.</p>
           </article>
           <article class="feature">
             <span class="eyebrow">Fallbacks</span>
-            <h3>Resolution requests fail gracefully.</h3>
-            <p>720p, 1080p, 1440p, 4K, and best-available downloads automatically fall back when an exact format is not exposed by the source.</p>
+            <h3>Choose a video resolution</h3>
+            <p>Choose 720p, 1080p, 1440p, 4K, or the best available quality. If the site does not offer your chosen resolution, VideoVault uses an available format.</p>
           </article>
           <article class="feature">
             <span class="eyebrow">YouTube</span>
-            <h3>Handles the messy parts.</h3>
-            <p>Automatic verified yt-dlp updates, JavaScript runtime setup, browser cookies, and ffmpeg integration keep the extraction tools ready for changing sites.</p>
+            <h3>Set up download tools</h3>
+            <p>VideoVault can install and update yt-dlp, set up its JavaScript runtime, use browser cookies, and convert files with ffmpeg.</p>
           </article>
           <article class="feature">
             <span class="eyebrow">Duplicates</span>
-            <h3>Keep one good copy.</h3>
-            <p>Skip indexed repeat downloads and find exact-content duplicates throughout your destination folder. Safely move selected extra copies to Trash or the Windows Recycle Bin.</p>
+            <h3>Find duplicate downloads</h3>
+            <p>Skip links you have already downloaded and check your download folder for identical files. Select the extra copies you want to move to Trash or the Windows Recycle Bin.</p>
           </article>
           <article class="feature">
             <span class="eyebrow">Organization</span>
-            <h3>Keep files sorted by source.</h3>
+            <h3>Organize files by site</h3>
             <p>Downloads can be grouped automatically into per-site folders like <code>youtube</code>, <code>vimeo</code>, or <code>reddit</code>.</p>
           </article>
           <article class="feature">
             <span class="eyebrow">Native</span>
-            <h3>At home on either desktop.</h3>
-            <p>A Home button and live Mac menu bar or Windows tray counts keep you in control. Quick paste best video or original-quality audio without bringing the window forward.</p>
+            <h3>Menu bar and tray controls</h3>
+            <p>Check download counts from the Mac menu bar or Windows tray. Paste a link there to download video or audio without opening the main window.</p>
           </article>
         </div>
       </div>
@@ -810,8 +810,8 @@
           <ul class="stack">
             <li><strong>MP3 Audio</strong><br>Extract audio and convert it with ffmpeg.</li>
             <li><strong>Best Audio (Original Quality)</strong><br>Keep the best available original audio track without forced lossy conversion.</li>
-            <li><strong>720p / 1080p / 1440p / 4K Video</strong><br>Ask for a ceiling and let VideoVault fall back safely when needed.</li>
-            <li><strong>Best Quality Video</strong><br>Grab the highest quality path the source exposes.</li>
+            <li><strong>720p / 1080p / 1440p / 4K Video</strong><br>Set a maximum resolution; use an available format if that resolution is missing.</li>
+            <li><strong>Best Quality Video</strong><br>Download the highest quality available from the source.</li>
           </ul>
         </div>
 
@@ -819,7 +819,7 @@
           <h3>Built on top of yt-dlp</h3>
           <pre><code>VideoVault
   ├─ Fetch video metadata
-  ├─ Build the safest matching format plan
+  ├─ Choose an available video or audio format
   ├─ Retry if exact formats are missing
   ├─ Merge streams with ffmpeg when needed
   ├─ Embed metadata and thumbnails
@@ -858,7 +858,7 @@ yt-dlp supported-sites matrix.</code></pre>
     <section id="install">
       <div class="shell">
         <div class="section-title">
-          <h2>Install in a few minutes.</h2>
+          <h2>Installation</h2>
           <p>Choose your platform, install the app, then let VideoVault detect or install its helper tools. Internet access is needed for first-run tool setup.</p>
         </div>
 
@@ -880,7 +880,7 @@ yt-dlp supported-sites matrix.</code></pre>
           </article>
           <article class="step">
             <div class="step-num">4</div>
-            <h3>Finish onboarding</h3>
+            <h3>Set up download tools</h3>
             <p>Let VideoVault detect or install <strong>yt-dlp</strong> and <strong>ffmpeg</strong>, then start queueing links.</p>
           </article>
         </div>
@@ -894,8 +894,8 @@ yt-dlp supported-sites matrix.</code></pre>
     <section id="windows">
       <div class="shell split">
         <div class="panel">
-          <h3>A native Windows preview, ready to try.</h3>
-          <p style="margin:0;color:var(--muted);line-height:1.7;">The <strong>C# / .NET 10 / WPF</strong> implementation is now downloadable for x64 and ARM64. It includes tray quick-paste actions, Home navigation, duplicate finding, verified tool installation, and technical-failure recovery. Download restrictions and DRM are not bypassed.</p>
+          <h3>Windows preview</h3>
+          <p style="margin:0;color:var(--muted);line-height:1.7;">The Windows app is available for x64 and ARM64. It includes tray controls, duplicate finding, download tool setup, and retry options. Download restrictions and DRM are not bypassed.</p>
           <div class="actions"><a class="button primary" href="#downloads">Windows downloads</a><a class="button quiet" href="https://github.com/eMacTh3Creator/VideoVault/blob/main/VideoVault-Windows/README.md">Windows guide</a></div>
         </div>
         <div class="panel">
@@ -912,7 +912,7 @@ yt-dlp supported-sites matrix.</code></pre>
 
   <footer>
     <div class="shell footer-inner">
-      <div>VideoVault is MIT licensed. Native Mac and Windows apps, powered by yt-dlp.</div>
+      <div>VideoVault is MIT licensed. Native Mac and Windows apps, uses yt-dlp.</div>
       <div class="footer-links">
         <a href="https://github.com/eMacTh3Creator/VideoVault">GitHub</a>
         <a href="https://github.com/eMacTh3Creator/VideoVault/releases">Releases</a>
