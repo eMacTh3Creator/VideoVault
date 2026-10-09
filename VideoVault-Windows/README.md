@@ -1,6 +1,6 @@
 # VideoVault for Windows
 
-Native C# / .NET 10 / WPF implementation of VideoVault. Windows 11-style layout, native dialogs, Explorer integration, and a live system-tray menu. Supports self-contained x64 and ARM64 releases without requiring users to install .NET.
+The Windows version of VideoVault downloads video and audio, saves your queue, and provides tray controls and Explorer shortcuts. Available for x64 and ARM64; the .NET runtime is included.
 
 ## Open in Visual Studio
 
@@ -21,7 +21,7 @@ For reliable builds in a VM, keep the build checkout on the Windows disk, such a
 - Home navigation preserves the queue. Search, status filters, drag-and-drop URLs, and native folder selection.
 - Tray counts for active, queued, and failed jobs; quick-paste best video/audio without opening the window; pause/resume/retry/quit actions; completion notifications.
 - Close-to-tray, optional Windows sign-in startup, and browser-cookie selection. Settings Cancel leaves the active configuration unchanged.
-- Velopack app-update integration: architecture-specific channels, background checks and download, and user-confirmed restart. Updating stops processes and saves the queue first. Development builds report that installation is required rather than pretending that update installation succeeded.
+- Velopack app-update integration: architecture-specific channels, background checks and download, and user-confirmed restart. Updating stops processes and saves the queue first. Development builds tell you when an installer is needed for updates.
 
 ## Build and Test
 
@@ -34,7 +34,7 @@ dotnet run --project VideoVault.Windows.Tests -c Release -- --install-tools
 dotnet run --project VideoVault.Windows.Tests -c Release -- --integration
 ```
 
-Tests use isolated temporary queue/settings directories. Synthetic subprocess tests cover cancellation, recovery, restrictions, concurrency, progress flooding, duplicates, persistence, and native UI controls. Integration tests generate a local test clip, download it with actual yt-dlp/FFmpeg, and convert it to MP3. No private or adult-content example URLs are needed.
+Tests use isolated temporary queue/settings directories. Synthetic subprocess tests cover cancellation, recovery, restrictions, concurrency, progress flooding, duplicates, persistence, and native UI controls. Integration tests generate a local test clip, download it with actual yt-dlp/FFmpeg, and convert it to MP3.
 
 `Ctrl+N` adds URLs, `Ctrl+V` quick-pastes the default format when not editing a text field, and `Ctrl+H` returns Home.
 
@@ -47,12 +47,12 @@ Tests use isolated temporary queue/settings directories. Synthetic subprocess te
 
 Packages appear in `artifacts\win-x64` and `artifacts\win-arm64`, with installers, portable archives, update packages/feeds, and SHA-256 checksums. The app runtime is self-contained; downloader tools are installed with checksum verification on first launch. Internet access is needed for tool setup and updates.
 
-For GitHub releases, upload **all** architecture-specific Velopack `.exe`, `.zip`, `.nupkg`, and feed `.json` files; installers alone are insufficient for automatic updates. Keep the `win-x64` and `win-arm64` channels unchanged between versions. Validate an installed old-to-new update before marking a release production-ready.
+For GitHub releases, upload **all** architecture-specific Velopack `.exe`, `.zip`, `.nupkg`, and feed `.json` files; installers alone are insufficient for automatic updates. Keep the `win-x64` and `win-arm64` channels unchanged between versions. Test an installed upgrade before publishing a release.
 
-Unsigned installers can trigger Windows SmartScreen. Production Authenticode signing requires a Windows code-signing certificate; this project does not disable Windows security checks or claim unsigned builds are trusted/signed.
+Unsigned installers can trigger Windows SmartScreen. Signing a Windows release requires a code-signing certificate.
 
-## Verification Status
+## Release details
 
-The implementation has been built and tested in Windows 11 ARM64 under Parallels with 42 passing regression/local-media integration checks. GitHub validation also passed on a Windows Server 2025 x64 runner, including the 42-check integration suite and packaging for both architectures. The unsigned development previews are included in GitHub release v1.4. Physical x64 PC testing and installed old-to-new automatic-update validation remain production release gates.
+Windows installers and portable builds are included in [release v1.4](https://github.com/eMacTh3Creator/VideoVault/releases/tag/v1.4). See the release notes for testing details and build status.
 
 Application source is covered by the repository's root `LICENSE`. Download dependencies retain their upstream licenses and are fetched separately from official releases. FFmpeg GPL build license/source information is preserved in its extracted dependency directory.
