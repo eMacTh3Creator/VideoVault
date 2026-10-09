@@ -21,9 +21,9 @@
 
 ## Overview
 
-VideoVault is a clean, native macOS download manager built on top of [yt-dlp](https://github.com/yt-dlp/yt-dlp). Paste in one URL or hundreds — VideoVault handles fetching, queuing, and downloading in the background while you get on with your day.
+VideoVault downloads video and audio using [yt-dlp](https://github.com/yt-dlp/yt-dlp). Paste links, choose a format, and let the queue run in the background.
 
-The native C# / .NET / WPF Windows implementation is now available as an unsigned development preview alongside the Mac release. [Choose a platform on the website](https://emacth3creator.github.io/VideoVault/#downloads), or open the [v1.4 release](https://github.com/eMacTh3Creator/VideoVault/releases/tag/v1.4).
+The Windows app is available as an unsigned preview alongside the Mac release. [Choose a platform on the website](https://emacth3creator.github.io/VideoVault/#downloads), or open the [v1.4 release](https://github.com/eMacTh3Creator/VideoVault/releases/tag/v1.4).
 
 Supports YouTube, Vimeo, Twitter/X, TikTok, Instagram, Reddit, Twitch, and [1000+ other sites](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md).
 
@@ -31,12 +31,12 @@ Supports YouTube, Vimeo, Twitter/X, TikTok, Instagram, Reddit, Twitch, and [1000
 
 ## Features
 
-- **Batch downloads** — paste unlimited URLs (one per line), queue them all at once
+- **Batch downloads** — paste multiple URLs, one per line, and add them to the queue together
 - **Multiple formats** — MP3 audio, 720p / 1080p / 1440p / 4K video, or best available
-- **Background processing** — downloads run off the main thread; the UI never freezes
+- **Background processing** — downloads run in background workers
 - **Configurable concurrency** — run 1–8 simultaneous downloads
-- **Smart resolution fallback** — if a requested resolution isn't available, falls back to best quality automatically
-- **YouTube-ready** — browser cookie support (Safari, Chrome, Firefox, Brave, Edge) and JavaScript runtime detection without forcing obsolete player clients
+- **Resolution fallback** — if a requested resolution isn't available, falls back to best quality automatically
+- **YouTube downloads** — browser cookie support (Safari, Chrome, Firefox, Brave, Edge) and JavaScript runtime detection without forcing obsolete player clients
 - **ffmpeg integration** — auto-detected for stream merging and MP3 conversion; one-click install in the app
 - **Embed metadata** — optionally embed thumbnails, titles, and uploader info into downloaded files
 - **Organize by source** — automatically sort downloads into per-site subdirectories
@@ -44,7 +44,7 @@ Supports YouTube, Vimeo, Twitter/X, TikTok, Instagram, Reddit, Twitch, and [1000
 - **Persistent queue** — your download history survives app restarts
 - **Native macOS UI** — NavigationSplitView layout, live progress, context menus, notifications
 - **Automatic updates** — verified yt-dlp updates at launch and every six hours; signed Sparkle app updates with automatic check/install controls
-- **Duplicate protection** — destination-specific download index, stable media identities, and exact-content checks; a duplicate finder safely moves selected extra copies to Trash
+- **Duplicate protection** — destination-specific download index, stable media identities, and exact-content checks; the duplicate finder moves selected extra copies to Trash
 - **Independent fallback** — Streamlink for supported sites and ffmpeg for direct media links when ordinary yt-dlp attempts fail
 - **Menu bar controls** — live active/queued/failed counts, quick paste best video or original-quality audio, retries, and queue controls without raising the window
 - **Home navigation** — return to the Add URLs home screen without deleting a download
@@ -76,7 +76,7 @@ Supports YouTube, Vimeo, Twitter/X, TikTok, Instagram, Reddit, Twitch, and [1000
 
 Run the matching installer, or extract the portable ZIP into its own folder and run `VideoVault.Windows.exe`. The .NET runtime is included. First-run tool installation needs internet access. These Windows 11 builds are unsigned and may trigger SmartScreen; no Windows security protections are disabled.
 
-Windows v1.4.0 includes the corrected Settings display and 42 passing regression/local-media checks in Windows 11 ARM64. Native x64 hardware and installed old-to-new automatic-update validation remain pending. Portable copies do not install application updates. See the [Windows guide](VideoVault-Windows/README.md) and [verification results](VideoVault-Windows/TEST_RESULTS.md).
+Windows v1.4.0 includes the updated Settings display and background download workers. Portable copies do not install app updates. See the [Windows guide](VideoVault-Windows/README.md) for setup and the [release notes](https://github.com/eMacTh3Creator/VideoVault/releases/tag/v1.4) for build details.
 
 The remaining usage and settings documentation below describes the Mac app; Windows-specific controls and build instructions are in the Windows guide.
 
