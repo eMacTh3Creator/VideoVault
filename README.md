@@ -82,7 +82,7 @@ The remaining usage and settings documentation below describes the Mac app; Wind
 
 ### Option 1 — Download the installer (recommended)
 
-1. Download **[VideoVault-v1.5-macOS.dmg](https://github.com/eMacTh3Creator/VideoVault/raw/refs/heads/main/Releases/VideoVault-v1.5-macOS.dmg)**.
+1. Download **[VideoVault-v1.5-macOS-notarized.dmg](https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.5/VideoVault-v1.5-macOS-notarized.dmg)**.
 2. Open the disk image and drag **VideoVault** to **Applications**.
 3. Eject the disk image, then open **VideoVault** from Applications.
 4. Use the built-in buttons to install yt-dlp and ffmpeg during setup.
@@ -91,7 +91,7 @@ The app checks for signed updates from its first launch and can download and ins
 
 **Upgrading from v1.4 or earlier:** install v1.5 manually once. The previous update-signing key is unavailable, so v1.5 uses a new publisher key and signed update channel. Your app identifier, queue, and existing settings are unchanged. Older feeds are preserved; future updates after this manual install use the new channel.
 
-Universal Intel and Apple Silicon build for macOS 13+. The app is Developer ID-signed but not Apple-notarized; first launch may require approval under **System Settings → Privacy & Security**.
+Universal Intel and Apple Silicon build for macOS 13+. The app and disk image are Developer ID-signed and Apple-notarized, with stapled tickets. Gatekeeper accepts both. macOS may still show its normal first-open confirmation for a downloaded app.
 
 ### First-start download tool setup
 
@@ -217,12 +217,16 @@ Update `CFBundleShortVersionString`, increment `CFBundleVersion`, update the rel
 
 ```bash
 VIDEOVAULT_TEST_ROOT=/tmp/VideoVault-tests swift test
+export VIDEOVAULT_SIGN_IDENTITY='Developer ID Application: Your Name (TEAM_ID)'
+export VIDEOVAULT_NOTARY_PROFILE=VideoVaultNotary
 bash script/publish_release.sh
 ```
 
 The publisher builds both architectures, creates the drag-to-Applications DMG, verifies the bundle and disk image, signs and verifies the update feed, then commits the versioned DMG and matching feed together. It refuses missing/mismatched keys, duplicate release versions, and uncommitted source changes. `git` push access is required on the publishing Mac. The GitHub release workflow verifies the signed DMG using only the public key, then automatically attaches it to a versioned GitHub Release. No private signing key is stored in GitHub Actions.
 
-`VIDEOVAULT_PACKAGES` selects the Xcode package cache; `VIDEOVAULT_BUILD` selects the build folder. `VIDEOVAULT_SIGNING_ACCOUNT` defaults to `videovault-v3`. Packaging uses `dmgbuild` 1.6.5 in an isolated Python environment. `VIDEOVAULT_DMGBUILD` can select an existing installation. Set `VIDEOVAULT_SIGN_IDENTITY` for inside-out Developer ID signing with hardened runtime. Notarization is a separate step; v1.5 is Developer ID-signed but not notarized.
+`VIDEOVAULT_PACKAGES` selects the Xcode package cache; `VIDEOVAULT_BUILD` selects the build folder. `VIDEOVAULT_SIGNING_ACCOUNT` defaults to `videovault-v3`. Packaging uses `dmgbuild` 1.6.5 in an isolated Python environment. `VIDEOVAULT_DMGBUILD` can select an existing installation. Set `VIDEOVAULT_SIGN_IDENTITY` for inside-out Developer ID signing with hardened runtime. When `VIDEOVAULT_NOTARY_PROFILE` is set, publishing requires Apple acceptance, staples and validates app/DMG tickets, verifies Gatekeeper acceptance, and signs the final download feed only after notarization.
+
+For an already-published signed version, run `bash script/notarize_release.sh /tmp/VideoVault-notarized-new VideoVaultNotary` with a new output directory. It notarizes the existing release without launching the app and emits `-notarized` filenames, notarization receipts, checksums, and a matching signed feed. Preserve the original downloads so cached signed feeds remain valid. Apple credentials stay in Keychain; never put passwords or private API keys in Git.
 
 To package without publishing, use `bash script/package_release.sh /tmp/VideoVault-release-artifacts`. To exercise update installation without touching `/Applications`, use `script/prepare_update_test.sh` with a signed app and a new temporary directory, then run Sparkle's test CLI against the isolated copy.
 

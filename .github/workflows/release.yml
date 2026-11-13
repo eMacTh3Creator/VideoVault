@@ -18,11 +18,19 @@ jobs:
         run: |
           VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' VideoVault/Info.plist)
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          SUFFIX=''
+          if [[ -f "Releases/VideoVault-v${VERSION}-macOS-notarized.dmg" ]]; then
+            SUFFIX='-notarized'
+          fi
+          echo "SUFFIX=$SUFFIX" >> "$GITHUB_ENV"
       - name: Verify published update without a private key
         run: |
-          swift script/verify_release.swift VideoVault/Info.plist docs/appcast-v3.xml "Releases/VideoVault-v${VERSION}-macOS.dmg"
-          hdiutil verify "Releases/VideoVault-v${VERSION}-macOS.dmg"
-          (cd Releases && shasum -a 256 -c "SHA256SUMS-v${VERSION}.txt")
+          swift script/verify_release.swift VideoVault/Info.plist docs/appcast-v3.xml "Releases/VideoVault-v${VERSION}-macOS${SUFFIX}.dmg"
+          hdiutil verify "Releases/VideoVault-v${VERSION}-macOS${SUFFIX}.dmg"
+          (cd Releases && shasum -a 256 -c "SHA256SUMS-v${VERSION}${SUFFIX}.txt")
+          if [[ "$SUFFIX" == '-notarized' ]]; then
+            xcrun stapler validate "Releases/VideoVault-v${VERSION}-macOS${SUFFIX}.dmg"
+          fi
       - name: Create downloadable GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -37,4 +45,4 @@ jobs:
           Path('release-body.md').write_text(text)
           PY
           gh release create "v${VERSION}" --target "$GITHUB_SHA" --title "VideoVault v${VERSION}" --notes-file release-body.md \
-            "Releases/VideoVault-v${VERSION}-macOS.dmg" "Releases/VideoVault-v${VERSION}-macOS.zip" "Releases/SHA256SUMS-v${VERSION}.txt"
+            "Releases/VideoVault-v${VERSION}-macOS${SUFFIX}.dmg" "Releases/VideoVault-v${VERSION}-macOS${SUFFIX}.zip" "Releases/SHA256SUMS-v${VERSION}${SUFFIX}.txt"

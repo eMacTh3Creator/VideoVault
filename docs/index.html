@@ -737,9 +737,9 @@
             <span class="platform-badge">macOS v1.5</span>
             <h3>Mac</h3>
             <p>Universal Intel and Apple Silicon app for macOS 13 or later. Native SwiftUI interface and signed Sparkle update feeds.</p>
-            <div class="actions"><a class="button primary" href="https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.5/VideoVault-v1.5-macOS.dmg">Download Mac DMG</a></div>
-            <p>Open the disk image and drag VideoVault to Applications. This build is Developer ID-signed but not Apple-notarized. <strong>Upgrading from v1.4 or earlier? Install v1.5 manually once</strong> to join the replacement signed update channel. Your queue and settings are kept.</p>
-            <div class="download-extra"><a href="https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.5/VideoVault-v1.5-macOS.zip">Mac app ZIP</a><a href="https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.5/SHA256SUMS-v1.5.txt">Mac checksums</a></div>
+            <div class="actions"><a class="button primary" href="https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.5/VideoVault-v1.5-macOS-notarized.dmg">Download notarized Mac DMG</a></div>
+            <p>Open the disk image and drag VideoVault to Applications. Both the app and installer are Developer ID-signed and Apple-notarized, with stapled tickets verified by Gatekeeper. <strong>Upgrading from v1.4 or earlier? Install v1.5 manually once</strong> to join the replacement signed update channel. Your queue and settings are kept.</p>
+            <div class="download-extra"><a href="https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.5/VideoVault-v1.5-macOS-notarized.zip">Notarized Mac app ZIP</a><a href="https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.5/SHA256SUMS-v1.5-notarized.txt">Mac checksums</a></div>
           </article>
           <article class="panel platform-card">
             <span class="platform-badge">Windows v1.5.0 development preview</span>
@@ -876,7 +876,7 @@ yt-dlp supported-sites matrix.</code></pre>
           <article class="step">
             <div class="step-num">3</div>
             <h3>Open once</h3>
-            <p>Launch VideoVault. Mac builds are not notarized and Windows previews are unsigned, so your operating system may show a first-launch security warning.</p>
+            <p>Launch VideoVault. The Mac download is Apple-notarized; macOS may still ask you to confirm the first open. Windows previews remain unsigned and may show SmartScreen warnings.</p>
           </article>
           <article class="step">
             <div class="step-num">4</div>

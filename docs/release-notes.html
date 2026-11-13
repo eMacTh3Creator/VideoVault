@@ -8,7 +8,7 @@
 <li>Matching recovery options are included in Windows x64 and ARM64 builds.</li>
 </ul>
 <p><strong>One manual Mac installation is required:</strong> The previous publisher key could not be recovered. Install 1.5 manually once to use the new signed update channel. Older feeds are preserved; private publisher keys are never included in the app.</p>
-<p>The universal Mac build is Developer ID-signed but not Apple-notarized. Windows builds remain unsigned previews. Download only from the official release page.</p>
+<p>The universal Mac app and disk image are Developer ID-signed and Apple-notarized, with stapled tickets. Gatekeeper and ticket validation passed, including the app extracted from the ZIP and the app inside the disk image. Use the new -notarized downloads; the original downloads are retained for cached update feeds. Windows builds remain unsigned previews.</p>
 
 <h2>Earlier: VideoVault 1.4</h2>
 <ul>

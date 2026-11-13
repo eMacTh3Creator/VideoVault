@@ -1,6 +1,8 @@
-<?xml version="1.0" standalone="yes"?><!-- sparkle-sign-warning:
+<?xml version="1.0" standalone="yes"?>
+<!-- sparkle-sign-warning:
 IMPORTANT: This file was signed by Sparkle. Any modifications to this file requires re-signing this file with generate_appcast or sign_update! The signed signature will be embedded at the end of this file.
---><rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+-->
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
     <channel>
         <title>VideoVault</title>
         <item>
@@ -20,7 +22,7 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
 <li>Matching recovery options are included in Windows x64 and ARM64 builds.</li>
 </ul>
 <p><strong>One manual Mac installation is required:</strong> The previous publisher key could not be recovered. Install 1.5 manually once to use the new signed update channel. Older feeds are preserved; private publisher keys are never included in the app.</p>
-<p>The universal Mac build is Developer ID-signed but not Apple-notarized. Windows builds remain unsigned previews. Download only from the official release page.</p>
+<p>The universal Mac build is Developer ID-signed and Apple-notarized. Windows builds remain unsigned previews. Download only from the official release page.</p>
 
 <h2>Earlier: VideoVault 1.4</h2>
 <ul>
@@ -45,10 +47,11 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
 <p><strong>Unsigned development builds:</strong> Windows SmartScreen may show a warning. Windows 11 ARM64 regression and local-media integration tests passed 42 checks. Native x64 hardware and installed old-to-new app-update validation remain pending. Portable copies do not install app updates.</p>
 <p><a href="index.html#downloads">Choose a download</a> or <a href="https://github.com/eMacTh3Creator/VideoVault/releases/tag/v1.4">open the combined GitHub release</a>.</p>
 ]]></description>
-            <enclosure url="https://raw.githubusercontent.com/eMacTh3Creator/VideoVault/main/Releases/VideoVault-v1.5-macOS.dmg" length="4619787" type="application/octet-stream" sparkle:edSignature="ffd6g9CN/qL/ZL2pvKbHBcoafuan3Ke0KQ5QiCb8PAIrTacwRlchRYu7YqW77NSYxUVpPNXfmSAvXhvOy40LDw=="></enclosure>
+            <enclosure url="https://raw.githubusercontent.com/eMacTh3Creator/VideoVault/main/Releases/VideoVault-v1.5-macOS-notarized.dmg" length="4631589" type="application/octet-stream" sparkle:edSignature="rbVSuT4ANaH/fKGmeoA52InHDBW6mIxSrV54lcdYmPZchrcYrKWXjc10NtLeY0UwgU4BW4PCTey/mEhOq2TpCw=="/>
         </item>
     </channel>
-</rss><!-- sparkle-signatures:
-edSignature: vntv2SiuzS1pwFKj/s79VcBKkYbynlkYSLRrsw6xO+IP/BYeLr56RplqLk4qcF6/fXaYw1CzAycEM2TMT/vpDQ==
-length: 4588
+</rss>
+<!-- sparkle-signatures:
+edSignature: tuIfb9i+oTUk+kf6BlYf0nGDgP3sC0ibFeGArSp9haP7sMcoUUPmn3XgHgXmXUv9iM59VerolrAHR2vyImEVCA==
+length: 4586
 -->

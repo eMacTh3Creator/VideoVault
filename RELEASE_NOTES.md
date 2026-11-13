@@ -14,7 +14,9 @@
 
 **Mac users on v1.4 or earlier must install v1.5 manually once.** The previous `videovault-v2` publisher key is unavailable, so this release uses a new key and a separate signed `appcast-v3.xml` feed. The old feeds remain unchanged. After the manual installation, future updates use the new channel. Publisher keys are stored outside the repository and are never required by customers.
 
-The Mac build is Developer ID-signed but not Apple-notarized. Windows installers remain unsigned development previews and may trigger SmartScreen. The installers include the Windows .NET runtime; first-run downloader setup requires internet access. Portable Windows copies do not install app updates.
+The Mac app and disk image are Developer ID-signed and Apple-notarized, with stapled tickets and Gatekeeper acceptance verified. Use the new `-notarized.dmg` or `-notarized.zip` downloads. Original downloads are retained for cached update feeds. Windows installers remain unsigned development previews and may trigger SmartScreen. The installers include the Windows .NET runtime; first-run downloader setup requires internet access. Portable Windows copies do not install app updates.
+
+**Mac downloads:** [Apple-notarized DMG](https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.5/VideoVault-v1.5-macOS-notarized.dmg) or [Apple-notarized app ZIP](https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.5/VideoVault-v1.5-macOS-notarized.zip).
 
 ## Verification
 
@@ -22,6 +24,7 @@ The Mac build is Developer ID-signed but not Apple-notarized. Windows installers
 - Regressions cover the screenshot's exact error, recovery after multiple forced attempts, the configured limit, disabled retries, real access restrictions, and cancellation during backoff.
 - The universal Mac binary, bundle signature, disk image, and new feed/archive signatures are checked during packaging. The running user application and VM are not opened or restarted.
 - Hosted Windows validation passed 56 regression checks and 62 regression/integration checks, including the new automatic Force Retry cases. Both x64 and ARM64 packages were built successfully. Physical ARM64/x64 PC testing and an installed old-to-new Windows update remain separate validation gates.
+- Apple accepted the Mac app and DMG with no warnings or errors. App/DMG tickets, the app extracted from the ZIP, and the app inside the mounted DMG all passed validation. The signed feed was regenerated for the final stapled DMG. See `Releases/NOTARIZATION-v1.5.md` for submission evidence.
 
 ---
 
