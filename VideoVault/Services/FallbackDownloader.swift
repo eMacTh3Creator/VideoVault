@@ -18,7 +18,7 @@ enum FallbackDownloader {
             let executable = FileManager.default.isExecutableFile(atPath: streamlink) ? streamlink : YTDLPService.findExecutable("streamlink")
             guard let executable else { throw ProcessFailure.failed("Streamlink is not installed. Use Install Streamlink in Settings to enable site fallback.") }
             let supported = try await ProcessRunner().run(executable: executable, arguments: ["--can-handle-url", url], timeout: 15)
-            guard supported.exitCode == 0 else { throw ProcessFailure.failed("Streamlink has no plugin for this website. Open the original page to check availability.") }
+            guard supported.exitCode == 0 else { throw ProcessFailure.failed("Streamlink has no plugin for this website; yt-dlp may still support it. The original downloader error is shown above.") }
             let transport = workspace.appendingPathComponent("stream.ts")
             var args = ["--output", transport.path, "--force", "--progress", "force", "--http-timeout", "20", "--stream-timeout", "60",
                         "--stream-segment-attempts", "3", "--retry-open", "2"]

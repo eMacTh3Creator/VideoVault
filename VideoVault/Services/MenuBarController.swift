@@ -32,6 +32,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     }
 
     private func setVisible(_ visible: Bool) {
+        guard ProcessInfo.processInfo.environment["VIDEOVAULT_TEST_ROOT"] == nil else { return }
         if visible, statusItem == nil {
             let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
             let menu = NSMenu()

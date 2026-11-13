@@ -100,6 +100,9 @@ final class RecoveryTests: XCTestCase {
         guard ProcessInfo.processInfo.environment["VIDEOVAULT_TEST_ROOT"] != nil else { throw XCTSkip("Requires isolated queue") }
         let root = try fixture(mode: "force")
         let settings = AppSettings.shared
+        let oldAuto = settings.autoForceRetry
+        settings.autoForceRetry = false
+        defer { settings.autoForceRetry = oldAuto }
         let old = (settings.ytdlpPath, settings.ffmpegPath, settings.streamlinkPath, settings.downloadPath,
                    settings.embedMetadata, settings.embedThumbnail, settings.enableFallbackDownloader,
                    settings.notificationsEnabled, settings.skipDuplicates, settings.organizeBySource)
@@ -181,6 +184,94 @@ final class RecoveryTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: result.file.path))
     }
 
+    @MainActor func testForceRetryBudgetClampsSettingsAndNeverMultipliesAttempts() throws {
+        let root = try fixture(mode: "postprocess")
+        let settings = AppSettings.shared
+        let saved = (settings.autoRetryFailed, settings.autoForceRetry, settings.maxForceRetries)
+        defer { settings.autoRetryFailed = saved.0; settings.autoForceRetry = saved.1; settings.maxForceRetries = saved.2 }
+        settings.autoRetryFailed = true; settings.autoForceRetry = true; settings.maxForceRetries = 3
+        var budget = DownloadRetryBudget(options: options(root))
+        XCTAssertEqual(budget.next(after: "Connection reset", forcing: false), .normal(1))
+        XCTAssertEqual(budget.next(after: "Connection reset", forcing: false), .normal(2))
+        XCTAssertEqual(budget.next(after: "Connection reset", forcing: false), .force(1))
+        XCTAssertEqual(budget.next(after: "Postprocessing: Invalid argument", forcing: true), .force(2))
+        XCTAssertEqual(budget.next(after: "Connection reset", forcing: true), .force(3))
+        XCTAssertNil(budget.next(after: "Postprocessing: Invalid argument", forcing: true))
+        XCTAssertEqual(budget.forceAttempts, 3)
+        settings.maxForceRetries = 100
+        XCTAssertEqual(options(root).maxForceRetries, 10)
+        settings.maxForceRetries = -1
+        XCTAssertEqual(options(root).maxForceRetries, 1)
+        for error in ["HTTP Error 403: Forbidden", "Login required", "DRM-protected", "Permission denied", "No space left on device"] {
+            var protectedBudget = DownloadRetryBudget(options: options(root))
+            XCTAssertNil(protectedBudget.next(after: error, forcing: false), error)
+        }
+    }
+
+    @MainActor func testAutomaticForceRetriesRecoverStopAtLimitAndRespectOptOut() async throws {
+        guard ProcessInfo.processInfo.environment["VIDEOVAULT_TEST_ROOT"] != nil else { throw XCTSkip("Requires isolated queue") }
+        let settings = AppSettings.shared
+        let saved = (settings.ytdlpPath, settings.ffmpegPath, settings.streamlinkPath, settings.downloadPath,
+                     settings.autoRetryFailed, settings.autoForceRetry, settings.maxForceRetries,
+                     settings.embedMetadata, settings.embedThumbnail, settings.enableFallbackDownloader,
+                     settings.skipDuplicates, settings.organizeBySource, settings.notificationsEnabled)
+        let queue = DownloadQueue.shared
+        let oldItems = queue.items
+        defer {
+            settings.ytdlpPath = saved.0; settings.ffmpegPath = saved.1; settings.streamlinkPath = saved.2; settings.downloadPath = saved.3
+            settings.autoRetryFailed = saved.4; settings.autoForceRetry = saved.5; settings.maxForceRetries = saved.6
+            settings.embedMetadata = saved.7; settings.embedThumbnail = saved.8; settings.enableFallbackDownloader = saved.9
+            settings.skipDuplicates = saved.10; settings.organizeBySource = saved.11; settings.notificationsEnabled = saved.12
+            queue.items = oldItems
+        }
+        let manager = DownloadManager.shared
+        for (failures, limit, automatic, force, restricted, succeeds, count) in [
+            (1, 3, true, true, false, true, 3),
+            (99, 2, true, true, false, false, 3),
+            (0, 3, true, false, false, false, 1),
+            (0, 3, false, true, false, false, 1),
+            (0, 3, true, true, true, false, 1)
+        ] {
+            let root = try fixture(mode: restricted ? "postprocess-restricted" : "postprocess", extra: ["force_failures": failures, "unsupported": true])
+            settings.ytdlpPath = root.appendingPathComponent("yt-dlp").path
+            settings.ffmpegPath = root.appendingPathComponent("ffmpeg").path
+            settings.streamlinkPath = root.appendingPathComponent("streamlink").path
+            settings.downloadPath = root.appendingPathComponent("output").path
+            settings.autoRetryFailed = automatic; settings.autoForceRetry = force; settings.maxForceRetries = limit
+            settings.embedMetadata = true; settings.embedThumbnail = true; settings.enableFallbackDownloader = true
+            settings.skipDuplicates = true; settings.organizeBySource = false; settings.notificationsEnabled = false
+            queue.items = []
+            manager.addURLs(["https://example.com/recovery"], format: .bestVideo)
+            try await waitUntil { !manager.isProcessing }
+            let item = try XCTUnwrap(queue.items.first)
+            XCTAssertEqual(item.status == .completed, succeeds)
+            let downloads = try calls(root).filter { $0.tool == "yt-dlp" && !$0.args.contains("--dump-single-json") }
+            XCTAssertEqual(downloads.count, count)
+            XCTAssertTrue(downloads[0].args.contains("--embed-metadata"))
+            for call in downloads.dropFirst() {
+                XCTAssertFalse(call.args.contains("--embed-thumbnail")); XCTAssertFalse(call.args.contains("--embed-metadata"))
+                XCTAssertTrue(call.args.contains("--no-overwrites"))
+            }
+            if automatic && force && !restricted && !succeeds {
+                XCTAssertTrue(item.errorMessage?.contains("limit reached (2/2)") == true)
+            }
+            assertSecurity(try calls(root))
+        }
+        // Cancelling during backoff must prevent the next subprocess from starting.
+        let root = try fixture(mode: "postprocess", extra: ["force_failures": 99, "unsupported": true])
+        settings.ytdlpPath = root.appendingPathComponent("yt-dlp").path
+        settings.ffmpegPath = root.appendingPathComponent("ffmpeg").path
+        settings.streamlinkPath = root.appendingPathComponent("streamlink").path
+        settings.downloadPath = root.appendingPathComponent("output").path
+        queue.items = []
+        manager.addURLs(["https://example.com/cancel-backoff"], format: .bestVideo)
+        try await waitUntil { queue.items.first?.forceRecovery == true }
+        manager.cancelDownload(try XCTUnwrap(queue.items.first))
+        try await waitUntil { !manager.isProcessing }
+        XCTAssertEqual(queue.items.first?.status, .cancelled)
+        XCTAssertEqual(try calls(root).filter { $0.tool == "yt-dlp" && !$0.args.contains("--dump-single-json") }.count, 1)
+    }
+
     private struct Call: Decodable { let tool: String; let args: [String] }
     private func calls(_ root: URL) throws -> [Call] {
         try String(contentsOf: root.appendingPathComponent("calls.jsonl")).split(separator: "\n")
@@ -225,7 +316,7 @@ final class RecoveryTests: XCTestCase {
             outputDirectory: root.appendingPathComponent("output"), options: options(root, force: force), progressHandler: { _, _ in })
     }
     @MainActor private func waitUntil(_ condition: () -> Bool) async throws {
-        let deadline = Date().addingTimeInterval(10)
+        let deadline = Date().addingTimeInterval(40)
         while !condition() {
             guard Date() < deadline else { throw NSError(domain: "RecoveryTestTimeout", code: 1) }
             try await Task.sleep(nanoseconds: 20_000_000)

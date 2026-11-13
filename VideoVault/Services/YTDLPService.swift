@@ -34,13 +34,15 @@ struct DownloadOptions: Sendable {
     let streamlinkPath: String
     let useBrowserCookies: Bool
     let cookiesBrowser: String
-    let embedMetadata: Bool
-    let embedThumbnail: Bool
+    private(set) var embedMetadata: Bool
+    private(set) var embedThumbnail: Bool
     let skipDuplicates: Bool
-    let enableFallbackDownloader: Bool
+    private(set) var enableFallbackDownloader: Bool
     let organizeBySource: Bool
     let autoRetryFailed: Bool
-    let forceRecovery: Bool
+    let autoForceRetry: Bool
+    let maxForceRetries: Int
+    private(set) var forceRecovery: Bool
 
     @MainActor init(settings: AppSettings = .shared, forceRecovery: Bool = false) {
         root = settings.downloadURL.standardizedFileURL
@@ -55,7 +57,18 @@ struct DownloadOptions: Sendable {
         enableFallbackDownloader = forceRecovery || settings.enableFallbackDownloader
         organizeBySource = settings.organizeBySource
         autoRetryFailed = settings.autoRetryFailed
+        autoForceRetry = settings.autoForceRetry
+        maxForceRetries = min(10, max(1, settings.maxForceRetries))
         self.forceRecovery = forceRecovery
+    }
+
+    func forcingRecovery() -> Self {
+        var copy = self
+        copy.forceRecovery = true
+        copy.embedMetadata = false
+        copy.embedThumbnail = false
+        copy.enableFallbackDownloader = true
+        return copy
     }
 }
 
@@ -69,7 +82,8 @@ enum DownloadFailurePolicy {
         let text = restrictionText(message)
         return ["safety reason", "video has been removed", "video is unavailable", "private video", "drm protected", "drm-protected",
                 "copyright", "not available in your country", "geo-restricted", "login required", "sign in to confirm your age",
-                "age verification", "video closed", "video is blocked"].contains { text.contains($0) }
+                "age verification", "video closed", "video is blocked", "http error 403", "forbidden",
+                "access denied", "sign in", "members-only", "age-restricted"].contains { text.contains($0) }
     }
     private static func restrictionText(_ message: String) -> String {
         // This exact diagnostic comes from yt-dlp's filename validator, not the website.
@@ -82,6 +96,16 @@ enum DownloadFailurePolicy {
         let text = message.lowercased()
         return ["timed out", "stopped responding", "connection reset", "temporary failure", "http error 429", "http error 50", "network is unreachable"].contains { text.contains($0) }
     }
+    static func isPostProcessing(_ message: String) -> Bool {
+        let text = message.lowercased()
+        return ["postprocessing", "post-processing", "error opening output files", "optional metadata processing"].contains { text.contains($0) }
+    }
+    static func canForceRetry(_ message: String) -> Bool {
+        guard !isSiteRestriction(message) else { return false }
+        let text = message.lowercased()
+        return !["permission denied", "read-only file system", "no space left", "disk quota", "file name too long",
+                 "not installed", "unsupported url", "http error 404"].contains { text.contains($0) }
+    }
     static func explanation(_ message: String) -> String {
         if isSiteRestriction(message), restrictionText(message).contains("safety reason") {
             return "The website refused access to this video for safety reasons. yt-dlp is reporting the website's response. Open the original page in your browser and follow the site's support instructions.\n\n\(message)"
@@ -90,6 +114,39 @@ enum DownloadFailurePolicy {
             return "yt-dlp rejected an unusual file extension. This can be caused by a malformed thumbnail filename; it is not a website access refusal.\n\n\(message)"
         }
         return message
+    }
+}
+
+struct DownloadRetryBudget {
+    enum Attempt: Equatable {
+        case normal(Int)
+        case force(Int)
+        var delaySeconds: Int {
+            switch self { case .normal(let count), .force(let count): return min(count * 3, 15) }
+        }
+    }
+    private(set) var normalAttempts = 0
+    private(set) var forceAttempts = 0
+    let enabled: Bool
+    let forceEnabled: Bool
+    let forceLimit: Int
+
+    init(options: DownloadOptions) {
+        enabled = options.autoRetryFailed
+        forceEnabled = options.autoForceRetry
+        forceLimit = options.maxForceRetries
+    }
+    mutating func next(after message: String, forcing: Bool) -> Attempt? {
+        guard enabled, DownloadFailurePolicy.canForceRetry(message) else { return nil }
+        if !forcing, DownloadFailurePolicy.isTransient(message), normalAttempts < 2 {
+            normalAttempts += 1
+            return .normal(normalAttempts)
+        }
+        if forceEnabled, forceAttempts < forceLimit {
+            forceAttempts += 1
+            return .force(forceAttempts)
+        }
+        return nil
     }
 }
 
@@ -223,6 +280,12 @@ final class YTDLPService {
                 if !lastMessage.lowercased().contains("requested format is not available") { break }
                 progressHandler(0, "Trying another available format")
             }
+        }
+        // Optional postprocessing errors are best retried by yt-dlp itself before
+        // asking Streamlink, which may not support the original website at all.
+        if !options.forceRecovery, options.autoRetryFailed, options.autoForceRetry,
+           DownloadFailurePolicy.isPostProcessing(lastMessage), DownloadFailurePolicy.canForceRetry(lastMessage) {
+            throw YTDLPError.downloadFailed(lastMessage)
         }
         if options.enableFallbackDownloader {
             progressHandler(0, "Trying fallback downloader")

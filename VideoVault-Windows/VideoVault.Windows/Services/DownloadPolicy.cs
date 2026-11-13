@@ -20,6 +20,15 @@ public static partial class DownloadPolicy
     { "timed out", "timeout", "connection reset", "temporarily unavailable", "http error 429", "http error 500", "http error 502", "http error 503" }
         .Any(term => message.Contains(term, StringComparison.OrdinalIgnoreCase));
 
+    public static bool IsPostProcessing(string message) => new[]
+        { "postprocessing", "post-processing", "error opening output files", "optional metadata processing" }
+        .Any(term => message.Contains(term, StringComparison.OrdinalIgnoreCase));
+
+    public static bool CanForceRetry(string message) => !IsRestriction(message) && !new[]
+        { "permission denied", "access to the path", "read-only file system", "no space left", "disk quota", "disk is full",
+          "file name too long", "not installed", "unsupported url", "http error 404", "cannot find the file", "outside the destination" }
+        .Any(term => message.Contains(term, StringComparison.OrdinalIgnoreCase));
+
     [GeneratedRegex(@"(?:ERROR:\s*)?The extracted extension[^\r\n]*unusual[^\r\n]*safety reasons\.[^\r\n]*(?:\r?\n(?:If you believe[^\r\n]*|Confirm you[^\r\n]*))*", RegexOptions.IgnoreCase)]
     private static partial Regex UnusualExtensionDiagnostic();
 
@@ -51,5 +60,25 @@ public static partial class DownloadPolicy
     {
         var cleaned = Regex.Replace(value, @"[^a-zA-Z0-9_\-]", "_");
         return string.IsNullOrEmpty(cleaned) ? "Unknown" : cleaned[..Math.Min(cleaned.Length, 80)];
+    }
+}
+
+public sealed class DownloadRetryBudget(AppSettings settings)
+{
+    private readonly bool _enabled = settings.AutoRetryFailed;
+    private readonly bool _forceEnabled = settings.AutoForceRetry;
+    public int ForceLimit { get; } = settings.MaxForceRetries;
+    public int NormalAttempts { get; private set; }
+    public int ForceAttempts { get; private set; }
+    public sealed record Attempt(bool Force, int Number)
+    {
+        public TimeSpan Delay => TimeSpan.FromSeconds(Math.Min(Number * 3, 15));
+    }
+    public Attempt? Next(string message, bool forcing)
+    {
+        if (!_enabled || !DownloadPolicy.CanForceRetry(message)) return null;
+        if (!forcing && DownloadPolicy.IsTransient(message) && NormalAttempts < 2) return new(false, ++NormalAttempts);
+        if (_forceEnabled && ForceAttempts < ForceLimit) return new(true, ++ForceAttempts);
+        return null;
     }
 }

@@ -88,6 +88,14 @@ struct SettingsView: View {
 
                         Toggle("Auto-retry failed downloads", isOn: $settings.autoRetryFailed)
                             .font(.subheadline)
+                        Toggle("Automatically use Force Retry after recoverable failures", isOn: $settings.autoForceRetry)
+                            .font(.subheadline)
+                            .disabled(!settings.autoRetryFailed)
+                        Stepper("Maximum automatic Force Retry attempts: \(settings.maxForceRetries)",
+                                value: $settings.maxForceRetries, in: 1...10)
+                            .disabled(!settings.autoRetryFailed || !settings.autoForceRetry)
+                        Text("Default: 3 extra attempts per download, with a short delay. Force Retry skips optional thumbnail and metadata work. It keeps the chosen quality and does not bypass access restrictions or DRM.")
+                            .font(.caption).foregroundColor(.secondary)
                     }
 
                     // Metadata

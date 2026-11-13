@@ -24,6 +24,8 @@ public sealed class AppSettings : ObservableObject
     private bool _notificationsEnabled = true;
     private bool _closeToTray = true;
     private bool _autoRetryFailed = true;
+    private bool _autoForceRetry = true;
+    private int _maxForceRetries = 3;
     private bool _launchAtLogin;
 
     public string StreamlinkPath { get => _streamlinkPath; set => SetProperty(ref _streamlinkPath, value); }
@@ -35,6 +37,8 @@ public sealed class AppSettings : ObservableObject
     public bool NotificationsEnabled { get => _notificationsEnabled; set => SetProperty(ref _notificationsEnabled, value); }
     public bool CloseToTray { get => _closeToTray; set => SetProperty(ref _closeToTray, value); }
     public bool AutoRetryFailed { get => _autoRetryFailed; set => SetProperty(ref _autoRetryFailed, value); }
+    public bool AutoForceRetry { get => _autoForceRetry; set => SetProperty(ref _autoForceRetry, value); }
+    public int MaxForceRetries { get => _maxForceRetries; set => SetProperty(ref _maxForceRetries, Math.Clamp(value, 1, 10)); }
     public bool LaunchAtLogin { get => _launchAtLogin; set => SetProperty(ref _launchAtLogin, value); }
 
     public AppSettings Snapshot() => System.Text.Json.JsonSerializer.Deserialize<AppSettings>(System.Text.Json.JsonSerializer.Serialize(this))!;

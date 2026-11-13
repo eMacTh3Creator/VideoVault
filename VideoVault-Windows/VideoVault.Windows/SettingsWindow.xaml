@@ -27,6 +27,9 @@
                 <CheckBox Content="Embed optional metadata" IsChecked="{Binding EmbedMetadata}" />
                 <CheckBox Content="Embed optional thumbnail" IsChecked="{Binding EmbedThumbnail}" />
                 <CheckBox Content="Retry temporary network errors (up to twice)" IsChecked="{Binding AutoRetryFailed}" />
+                <CheckBox Content="Automatically use Force Retry after recoverable failures" IsChecked="{Binding AutoForceRetry}" IsEnabled="{Binding AutoRetryFailed}" />
+                <Grid Margin="0,4,0,8" IsEnabled="{Binding AutoForceRetry}"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="90" /></Grid.ColumnDefinitions><TextBlock Text="Maximum automatic Force Retry attempts" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,12,0" /><ComboBox Grid.Column="1" ItemsSource="{Binding ForceRetryOptions, RelativeSource={RelativeSource AncestorType=Window}}" SelectedItem="{Binding MaxForceRetries}" /></Grid>
+                <TextBlock Text="Default: 3 extra attempts per download, with short delays. Turning off automatic retries disables both network and Force Retry attempts. Quality, duplicate checks, and access restrictions are preserved." TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,12" />
                 <CheckBox Content="Try an independent backup downloader after technical failures" IsChecked="{Binding EnableFallbackDownloader}" />
                 <TextBlock Text="Force Retry skips optional metadata and thumbnail. Recovery never bypasses DRM, login, or website access restrictions." TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource MutedBrush}" Margin="0,6,0,16" />
                 <TextBlock Text="WINDOWS INTEGRATION" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" />

@@ -139,17 +139,30 @@ public sealed class DownloadManager
                         return (Info: info, Result: new DownloadResult(existing, "Library", true, info?.MediaId));
                     var output = options.OrganizeBySource ? Path.Combine(root, DownloadPolicy.SafeName(info?.Source ?? request.Source ?? "Unknown")) : root;
                     DownloadResult result;
-                    var retry = 0;
+                    var retries = new DownloadRetryBudget(options);
+                    var attemptRequest = request;
                     while (true)
                     {
                         try
                         {
                             _progress[item.Id] = (0, "Starting download");
-                            result = await _downloader.DownloadAsync(request, options, output, (p, activity) => _progress[item.Id] = (p, activity), token);
+                            result = await _downloader.DownloadAsync(attemptRequest, options, output, (p, activity) => _progress[item.Id] = (p, activity), token);
                             break;
                         }
-                        catch (Exception ex) when (ex is not OperationCanceledException && options.AutoRetryFailed && retry < 2 && DownloadPolicy.IsTransient(ex.Message))
-                        { retry++; _progress[item.Id] = (0, $"Retry {retry}/2"); await Task.Delay(TimeSpan.FromSeconds(retry * 3), token); }
+                        catch (Exception ex) when (ex is not OperationCanceledException)
+                        {
+                            token.ThrowIfCancellationRequested();
+                            var next = retries.Next(ex.Message, attemptRequest.ForceRecovery);
+                            if (next is null)
+                            {
+                                if (retries.ForceAttempts > 0 && DownloadPolicy.CanForceRetry(ex.Message))
+                                    throw new IOException($"Automatic Force Retry limit reached ({retries.ForceAttempts}/{retries.ForceLimit}).\n\n{ex.Message}", ex);
+                                throw;
+                            }
+                            if (next.Force) attemptRequest = request with { ForceRecovery = true };
+                            _progress[item.Id] = (0, next.Force ? $"Automatic Force Retry {next.Number}/{retries.ForceLimit} in {next.Delay.TotalSeconds}s" : $"Network retry {next.Number}/2");
+                            await Task.Delay(next.Delay, token);
+                        }
                     }
                     token.ThrowIfCancellationRequested();
                     if (options.SkipDuplicates && !result.Skipped) result = await _library.CoalesceAsync(root, result, token);

@@ -227,13 +227,14 @@ final class DownloadManager: ObservableObject {
             }
             let source = current.sourceName.components(separatedBy: CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_")).inverted).joined(separator: "_")
             let output = options.organizeBySource ? root.appendingPathComponent(source.isEmpty ? "Unknown" : source) : root
-            var retries = 0
+            var retryBudget = DownloadRetryBudget(options: options)
+            var attemptOptions = options
             while true {
                 try Task.checkCancellation()
                 current.status = .downloading(progress: 0)
                 buffer.publish(current, activity: "Downloading: \(current.displayTitle)")
                 do {
-                    var result = try await YTDLPService.download(url: item.url, format: item.format, outputDirectory: output, options: options) {
+                    var result = try await YTDLPService.download(url: item.url, format: item.format, outputDirectory: output, options: attemptOptions) {
                         buffer.progress($0, status: $1)
                     }
                     try Task.checkCancellation()
@@ -249,12 +250,23 @@ final class DownloadManager: ObservableObject {
                     break
                 } catch {
                     try Task.checkCancellation()
-                    guard options.autoRetryFailed, retries < 2, DownloadFailurePolicy.isTransient(error.localizedDescription),
-                          !DownloadFailurePolicy.isSiteRestriction(error.localizedDescription) else { throw error }
-                    retries += 1
-                    current.retryCount = retries
-                    buffer.publish(current, activity: "Retry \(retries)/2: \(current.displayTitle)")
-                    try await Task.sleep(nanoseconds: UInt64(retries * 3) * 1_000_000_000)
+                    guard let retry = retryBudget.next(after: error.localizedDescription, forcing: attemptOptions.forceRecovery) else {
+                        if retryBudget.forceAttempts > 0, DownloadFailurePolicy.canForceRetry(error.localizedDescription) {
+                            throw YTDLPError.downloadFailed("Automatic Force Retry limit reached (\(retryBudget.forceAttempts)/\(retryBudget.forceLimit)).\n\n\(error.localizedDescription)")
+                        }
+                        throw error
+                    }
+                    current.retryCount = retryBudget.normalAttempts + retryBudget.forceAttempts
+                    let activity: String
+                    switch retry {
+                    case .normal(let count): activity = "Network retry \(count)/2"
+                    case .force(let count):
+                        attemptOptions = options.forcingRecovery()
+                        current.forceRecovery = true
+                        activity = "Automatic Force Retry \(count)/\(retryBudget.forceLimit)"
+                    }
+                    buffer.publish(current, activity: "\(activity) in \(retry.delaySeconds)s: \(current.displayTitle)")
+                    try await Task.sleep(nanoseconds: UInt64(retry.delaySeconds) * 1_000_000_000)
                 }
             }
         } catch {

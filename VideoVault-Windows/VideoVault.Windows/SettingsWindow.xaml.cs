@@ -6,6 +6,7 @@ public partial class SettingsWindow : Window
 {
     public AppSettings Settings { get; }
     public IReadOnlyList<int> ConcurrencyOptions { get; } = Enumerable.Range(1, 8).ToList();
+    public IReadOnlyList<int> ForceRetryOptions { get; } = Enumerable.Range(1, 10).ToList();
     public event Action? InstallToolsRequested;
     public event Action? UpdateYtDlpRequested;
     public event Action? AppUpdateRequested;

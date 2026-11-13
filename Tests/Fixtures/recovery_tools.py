@@ -38,6 +38,16 @@ if tool.name == "yt-dlp":
         sys.exit(1)
     if mode == "invalid-output":
         sys.exit(0)
+    if mode in ("postprocess", "postprocess-restricted"):
+        if mode == "postprocess-restricted":
+            print("HTTP Error 403: Forbidden", file=sys.stderr)
+        optional = "--embed-metadata" in args or "--embed-thumbnail" in args
+        downloads = [json.loads(line) for line in (tool.parent / "calls.jsonl").read_text().splitlines()]
+        forced = sum(c["tool"] == "yt-dlp" and "--dump-single-json" not in c["args"]
+                     and "--embed-metadata" not in c["args"] and "--embed-thumbnail" not in c["args"] for c in downloads)
+        if optional or forced <= config.get("force_failures", 0) or mode == "postprocess-restricted":
+            print("ERROR: Postprocessing: Error opening output files: Invalid argument", file=sys.stderr)
+            sys.exit(1)
     if (mode == "thumbnail" and "--embed-thumbnail" in args) or mode in ("unsafe", "metadata-unsafe"):
         print(unsafe, file=sys.stderr)
         sys.exit(1)

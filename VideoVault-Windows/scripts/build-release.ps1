@@ -1,10 +1,11 @@
 param(
     [ValidateSet('win-x64', 'win-arm64')][string]$Runtime = 'win-x64',
-    [string]$Version = '1.4.0',
+    [string]$Version,
     [string]$OutputDirectory
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
+if (-not $Version) { $Version = ([xml](Get-Content (Join-Path $root 'VideoVault.Windows\VideoVault.Windows.csproj'))).Project.PropertyGroup.Version }
 if (-not $OutputDirectory) { $OutputDirectory = Join-Path $root "artifacts\$Runtime" }
 $OutputDirectory = [IO.Path]::GetFullPath($OutputDirectory)
 $publish = Join-Path $OutputDirectory 'publish'

@@ -75,6 +75,8 @@ public sealed class YtDlpService
                 break;
             }
         }
+        if (!request.ForceRecovery && settings.AutoRetryFailed && settings.AutoForceRetry &&
+            DownloadPolicy.IsPostProcessing(original!.Message) && DownloadPolicy.CanForceRetry(original.Message)) throw original;
         if ((settings.EnableFallbackDownloader || request.ForceRecovery) && !DownloadPolicy.IsRestriction(original!.Message))
         {
             try { return await FallbackDownloader.DownloadAsync(request, settings, output, progress, token).ConfigureAwait(false); }
@@ -92,7 +94,7 @@ public sealed class YtDlpService
             "--print", "after_move:VV_FILE:%(filepath)s", "--print", "after_move:VV_ID:%(id)s",
             "--no-simulate", "--no-overwrites", "-o", Path.Combine(output, $"%(title).150B [%(id)s] [{request.Format}].%(ext)s")]);
         if (settings.EmbedMetadata && !request.ForceRecovery) args.Add("--embed-metadata");
-        if (settings.EmbedThumbnail && !omitThumbnail) args.Add("--embed-thumbnail");
+        if (settings.EmbedThumbnail && !omitThumbnail && !request.ForceRecovery) args.Add("--embed-thumbnail");
         else args.AddRange(["--no-write-thumbnail", "--no-embed-thumbnail"]);
         args.AddRange(["--", request.Url]);
         return args;

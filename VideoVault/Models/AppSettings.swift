@@ -3,85 +3,97 @@ import Combine
 
 class AppSettings: ObservableObject {
     static let shared = AppSettings()
+    private let defaults: UserDefaults
 
     @Published var downloadPath: String {
-        didSet { UserDefaults.standard.set(downloadPath, forKey: "downloadPath") }
+        didSet { defaults.set(downloadPath, forKey: "downloadPath") }
     }
 
     @Published var defaultFormat: DownloadFormat {
-        didSet { UserDefaults.standard.set(defaultFormat.rawValue, forKey: "defaultFormat") }
+        didSet { defaults.set(defaultFormat.rawValue, forKey: "defaultFormat") }
     }
 
     @Published var maxConcurrentDownloads: Int {
-        didSet { UserDefaults.standard.set(maxConcurrentDownloads, forKey: "maxConcurrentDownloads") }
+        didSet { defaults.set(maxConcurrentDownloads, forKey: "maxConcurrentDownloads") }
     }
 
     @Published var launchAtLogin: Bool {
         didSet {
-            UserDefaults.standard.set(launchAtLogin, forKey: "launchAtLogin")
+            defaults.set(launchAtLogin, forKey: "launchAtLogin")
             LaunchAtLogin.setEnabled(launchAtLogin)
         }
     }
 
     @Published var showInMenuBar: Bool {
-        didSet { UserDefaults.standard.set(showInMenuBar, forKey: "showInMenuBar") }
+        didSet { defaults.set(showInMenuBar, forKey: "showInMenuBar") }
     }
 
     @Published var notificationsEnabled: Bool {
-        didSet { UserDefaults.standard.set(notificationsEnabled, forKey: "notificationsEnabled") }
+        didSet { defaults.set(notificationsEnabled, forKey: "notificationsEnabled") }
     }
 
     @Published var hasCompletedOnboarding: Bool {
-        didSet { UserDefaults.standard.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding") }
+        didSet { defaults.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding") }
     }
 
     @Published var autoRetryFailed: Bool {
-        didSet { UserDefaults.standard.set(autoRetryFailed, forKey: "autoRetryFailed") }
+        didSet { defaults.set(autoRetryFailed, forKey: "autoRetryFailed") }
+    }
+
+    @Published var autoForceRetry: Bool {
+        didSet { defaults.set(autoForceRetry, forKey: "autoForceRetry") }
+    }
+
+    @Published var maxForceRetries: Int {
+        didSet { defaults.set(maxForceRetries, forKey: "maxForceRetries") }
     }
 
     @Published var ytdlpPath: String {
-        didSet { UserDefaults.standard.set(ytdlpPath, forKey: "ytdlpPath") }
+        didSet { defaults.set(ytdlpPath, forKey: "ytdlpPath") }
     }
 
     @Published var embedThumbnail: Bool {
-        didSet { UserDefaults.standard.set(embedThumbnail, forKey: "embedThumbnail") }
+        didSet { defaults.set(embedThumbnail, forKey: "embedThumbnail") }
     }
 
     @Published var embedMetadata: Bool {
-        didSet { UserDefaults.standard.set(embedMetadata, forKey: "embedMetadata") }
+        didSet { defaults.set(embedMetadata, forKey: "embedMetadata") }
     }
 
     @Published var organizeBySource: Bool {
-        didSet { UserDefaults.standard.set(organizeBySource, forKey: "organizeBySource") }
+        didSet { defaults.set(organizeBySource, forKey: "organizeBySource") }
     }
 
     @Published var useBrowserCookies: Bool {
-        didSet { UserDefaults.standard.set(useBrowserCookies, forKey: "useBrowserCookies") }
+        didSet { defaults.set(useBrowserCookies, forKey: "useBrowserCookies") }
     }
 
     @Published var cookiesBrowser: String {
-        didSet { UserDefaults.standard.set(cookiesBrowser, forKey: "cookiesBrowser") }
+        didSet { defaults.set(cookiesBrowser, forKey: "cookiesBrowser") }
     }
 
     @Published var ffmpegPath: String {
-        didSet { UserDefaults.standard.set(ffmpegPath, forKey: "ffmpegPath") }
+        didSet { defaults.set(ffmpegPath, forKey: "ffmpegPath") }
     }
 
     @Published var automaticallyUpdateYTDLP: Bool {
-        didSet { UserDefaults.standard.set(automaticallyUpdateYTDLP, forKey: "automaticallyUpdateYTDLP") }
+        didSet { defaults.set(automaticallyUpdateYTDLP, forKey: "automaticallyUpdateYTDLP") }
     }
     @Published var skipDuplicates: Bool {
-        didSet { UserDefaults.standard.set(skipDuplicates, forKey: "skipDuplicates") }
+        didSet { defaults.set(skipDuplicates, forKey: "skipDuplicates") }
     }
     @Published var enableFallbackDownloader: Bool {
-        didSet { UserDefaults.standard.set(enableFallbackDownloader, forKey: "enableFallbackDownloader") }
+        didSet { defaults.set(enableFallbackDownloader, forKey: "enableFallbackDownloader") }
     }
     @Published var streamlinkPath: String {
-        didSet { UserDefaults.standard.set(streamlinkPath, forKey: "streamlinkPath") }
+        didSet { defaults.set(streamlinkPath, forKey: "streamlinkPath") }
     }
 
     private init() {
-        let defaults = UserDefaults.standard
+        // Test workers must never change the running application's preferences.
+        defaults = ProcessInfo.processInfo.environment["VIDEOVAULT_TEST_ROOT"]
+            .flatMap { UserDefaults(suiteName: "VideoVault.Tests." + URL(fileURLWithPath: $0).lastPathComponent) }
+            ?? UserDefaults.standard
 
         let defaultDownloadPath = NSHomeDirectory() + "/Downloads/VideoVault"
 
@@ -93,6 +105,8 @@ class AppSettings: ObservableObject {
         self.notificationsEnabled = defaults.object(forKey: "notificationsEnabled") as? Bool ?? true
         self.hasCompletedOnboarding = defaults.bool(forKey: "hasCompletedOnboarding")
         self.autoRetryFailed = defaults.object(forKey: "autoRetryFailed") as? Bool ?? true
+        self.autoForceRetry = defaults.object(forKey: "autoForceRetry") as? Bool ?? true
+        self.maxForceRetries = min(10, max(1, defaults.object(forKey: "maxForceRetries") as? Int ?? 3))
         self.ytdlpPath = defaults.string(forKey: "ytdlpPath") ?? "/opt/homebrew/bin/yt-dlp"
         self.embedThumbnail = defaults.object(forKey: "embedThumbnail") as? Bool ?? true
         self.embedMetadata = defaults.object(forKey: "embedMetadata") as? Bool ?? true

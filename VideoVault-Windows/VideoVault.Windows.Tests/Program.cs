@@ -21,6 +21,7 @@ public static class TestProgram
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args.Contains("--can-handle-url")) return 1;
         if (args.Contains("--ignore-config") || args.Contains("-i") || args.Contains("--sleep") || args.Contains("--spawn-child")) return FakeTool(args);
         if (args.Contains("--preview-settings"))
         {
@@ -127,9 +128,67 @@ public static class TestProgram
         Check(new DownloadQueueStore(storeRoot).Load().Any(i => i.Id == slow.Id && i.Status == DownloadStatus.Cancelled), "cancellation and queue persistence survive shutdown");
         var snap = settings.Snapshot(); snap.DownloadPath = "different";
         Check(settings.DownloadPath != snap.DownloadPath, "settings dialog cancellation cannot mutate live settings");
+        await ForceRetryTestsAsync();
         await UiSmokeAsync();
         if (integration) await RealDownloadAsync();
     }
+    private static async Task ForceRetryTestsAsync()
+    {
+        const string postprocessing = "ERROR: Postprocessing: Error opening output files: Invalid argument";
+        var settings = new AppSettings { MaxForceRetries = 2 };
+        var budget = new DownloadRetryBudget(settings);
+        Check(budget.Next("Connection reset", false) is { Force: false, Number: 1 } &&
+              budget.Next("Connection reset", false) is { Force: false, Number: 2 } &&
+              budget.Next("Connection reset", false) is { Force: true, Number: 1 } &&
+              budget.Next(postprocessing, true) is { Force: true, Number: 2 } && budget.Next(postprocessing, true) is null,
+              "network and forced retries share one bounded per-job budget");
+        foreach (var error in new[] { "HTTP Error 403: Forbidden", "DRM protected", "Login required", "Permission denied", "No space left" })
+            Check(new DownloadRetryBudget(settings).Next(postprocessing + "\n" + error, false) is null, "no automatic force for restriction/local failure: " + error);
+        settings.MaxForceRetries = 999; Check(settings.MaxForceRetries == 10, "Force Retry setting has a safe upper bound");
+        settings.MaxForceRetries = -1; Check(settings.MaxForceRetries == 1, "Force Retry setting has a safe lower bound");
+        Check(JsonSerializer.Deserialize<AppSettings>("{}") is { AutoForceRetry: true, MaxForceRetries: 3 }, "older settings get the three-attempt default");
+        foreach (var (name, enabled, force, succeeds, expected) in new[] {
+            ("flaky", true, true, true, 3), ("persist", true, true, false, 3),
+            ("optout", true, false, false, 1), ("off", false, true, false, 1) })
+        {
+            var root = Path.Combine(_root, "retry-" + name);
+            var options = new AppSettings { YtDlpPath = Self, FFmpegPath = Self, StreamlinkPath = Self,
+                DownloadPath = Path.Combine(root, "media"), OrganizeBySource = false, SkipDuplicates = false,
+                AutoRetryFailed = enabled, AutoForceRetry = force, MaxForceRetries = 2, NotificationsEnabled = false };
+            var store = new SettingsStore(root);
+            await AtomicStore.WriteAsync(store.SettingsFilePath, JsonSerializer.Serialize(options));
+            var manager = new DownloadManager(new DownloadQueueStore(root), store);
+            try
+            {
+                manager.AddUrls(["https://example.test/postprocess-" + name], DownloadFormat.BestVideo);
+                await UntilAsync(() => manager.Items.All(i => !i.IsActive && i.Status != DownloadStatus.Queued), 25000);
+                var item = manager.Items.Single();
+                Check((item.Status == DownloadStatus.Completed) == succeeds, "automatic postprocessing recovery outcome: " + name);
+                var attempts = File.ReadAllLines(Path.Combine(options.DownloadPath, "attempts.jsonl"))
+                    .Select(line => JsonSerializer.Deserialize<string[]>(line)!).ToList();
+                Check(attempts.Count == expected && attempts.Skip(1).All(a => !a.Contains("--embed-metadata") && !a.Contains("--embed-thumbnail") && a.Contains("--no-overwrites")),
+                    "forced attempts are bounded and preserve duplicate/optional-work policy: " + name);
+                if (name == "persist") Check(item.ErrorMessage!.Contains("limit reached (2/2)"), "exhausted Force Retry limit is visible");
+            }
+            finally { await manager.StopAsync(); }
+        }
+        var cancelRoot = Path.Combine(_root, "retry-cancel");
+        var cancelStore = new SettingsStore(cancelRoot);
+        await AtomicStore.WriteAsync(cancelStore.SettingsFilePath, JsonSerializer.Serialize(new AppSettings {
+            YtDlpPath = Self, FFmpegPath = Self, StreamlinkPath = Self, DownloadPath = Path.Combine(cancelRoot, "media"),
+            OrganizeBySource = false, SkipDuplicates = false }));
+        var cancelManager = new DownloadManager(new DownloadQueueStore(cancelRoot), cancelStore);
+        try
+        {
+            cancelManager.AddUrls(["https://example.test/postprocess-persist"], DownloadFormat.BestVideo);
+            await UntilAsync(() => cancelManager.Activity.Contains("Automatic Force Retry"), 5000);
+            cancelManager.Cancel(cancelManager.Items.Single());
+            await cancelManager.StopAsync();
+            Check(File.ReadAllLines(Path.Combine(cancelRoot, "media", "attempts.jsonl")).Length == 1, "cancelling retry backoff prevents the next process");
+        }
+        finally { await cancelManager.StopAsync(); }
+    }
+
     private static async Task UntilAsync(Func<bool> predicate, int milliseconds)
     { var watch = Stopwatch.StartNew(); while (!predicate()) { if (watch.ElapsedMilliseconds > milliseconds) throw new TimeoutException("Test queue did not drain"); await Task.Delay(25); } }
     private static async Task UiSmokeAsync()
@@ -241,6 +300,16 @@ public static class TestProgram
         var id = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(url)))[..8];
         if (url.Contains("restricted")) { Console.Error.WriteLine("HTTP Error 403: Forbidden"); return 1; }
         if (args.Contains("--dump-single-json")) { Console.WriteLine(JsonSerializer.Serialize(new { title = "Synthetic clip", id, duration = 2, extractor_key = "Synthetic" })); return 0; }
+        if (url.Contains("postprocess"))
+        {
+            var directory = Path.GetDirectoryName(args[Array.IndexOf(args, "-o") + 1])!;
+            Directory.CreateDirectory(directory);
+            var log = Path.Combine(directory, "attempts.jsonl");
+            File.AppendAllText(log, JsonSerializer.Serialize(args) + Environment.NewLine);
+            var forced = File.ReadLines(log).Count(l => { var a = JsonSerializer.Deserialize<string[]>(l)!; return !a.Contains("--embed-metadata") && !a.Contains("--embed-thumbnail"); });
+            if (args.Contains("--embed-metadata") || args.Contains("--embed-thumbnail") || url.Contains("persist") || (url.Contains("flaky") && forced < 2))
+            { Console.Error.WriteLine("ERROR: Postprocessing: Error opening output files: Invalid argument"); return 1; }
+        }
         if (url.Contains("fail")) { Console.Error.WriteLine("Synthetic technical failure"); return 1; }
         if (url.Contains("unusual") && args.Contains("--embed-thumbnail"))
         { Console.Error.WriteLine("ERROR: The extracted extension ('v1692889884') is unusual and will be skipped for safety reasons."); return 1; }
