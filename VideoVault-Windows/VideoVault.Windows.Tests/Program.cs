@@ -135,6 +135,7 @@ public static class TestProgram
     private static async Task ForceRetryTestsAsync()
     {
         const string postprocessing = "ERROR: Postprocessing: Error opening output files: Invalid argument";
+        Check(DownloadPolicy.CanForceRetry(postprocessing + "\n\nBackup downloader: Streamlink is not installed"), "missing backup does not prevent retrying yt-dlp");
         var settings = new AppSettings { MaxForceRetries = 2 };
         var budget = new DownloadRetryBudget(settings);
         Check(budget.Next("Connection reset", false) is { Force: false, Number: 1 } &&

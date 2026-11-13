@@ -5,7 +5,7 @@ import CryptoKit
 func require(_ condition: Bool, _ message: String) {
     if !condition { fputs("Release verification failed: \(message)\n", stderr); exit(1) }
 }
-require(CommandLine.arguments.count == 4, "usage: verify_release.swift Info.plist appcast-v2.xml release.dmg")
+require(CommandLine.arguments.count == 4, "usage: verify_release.swift Info.plist appcast.xml release.dmg")
 let info = try PropertyListSerialization.propertyList(from: Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1])), format: nil) as! [String: Any]
 let publicKey = try Curve25519.Signing.PublicKey(rawRepresentation: Data(base64Encoded: info["SUPublicEDKey"] as! String)!)
 let feed = try Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[2]))

@@ -198,6 +198,7 @@ final class RecoveryTests: XCTestCase {
         XCTAssertEqual(budget.next(after: "Connection reset", forcing: true), .force(3))
         XCTAssertNil(budget.next(after: "Postprocessing: Invalid argument", forcing: true))
         XCTAssertEqual(budget.forceAttempts, 3)
+        XCTAssertTrue(DownloadFailurePolicy.canForceRetry("Postprocessing: Invalid argument\n\nFallback: Streamlink is not installed"))
         settings.maxForceRetries = 100
         XCTAssertEqual(options(root).maxForceRetries, 10)
         settings.maxForceRetries = -1

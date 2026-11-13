@@ -1,4 +1,16 @@
-<h2>VideoVault 1.4</h2>
+<h2>VideoVault 1.5</h2>
+<ul>
+<li>Automatically use Force Retry after recoverable postprocessing failures, including FFmpeg's "Error opening output files: Invalid argument" diagnostic.</li>
+<li>Choose 1-10 automatic Force Retry attempts in Settings; the default is 3 extra attempts per download.</li>
+<li>Forced attempts skip optional thumbnail and metadata work while keeping the chosen quality, duplicate protection, and access restrictions.</li>
+<li>Retries use short, increasing delays, stop at the configured limit, and can be cancelled during the delay. Turning automatic retries off disables them.</li>
+<li>Try yt-dlp recovery before unsupported Streamlink fallbacks for postprocessing errors. Clarify that a missing Streamlink plugin is a backup limitation, not a verdict on the source.</li>
+<li>Matching recovery options are included in Windows x64 and ARM64 builds.</li>
+</ul>
+<p><strong>One manual Mac installation is required:</strong> The previous publisher key could not be recovered. Install 1.5 manually once to use the new signed update channel. Older feeds are preserved; private publisher keys are never included in the app.</p>
+<p>The universal Mac build is Developer ID-signed but not Apple-notarized. Windows builds remain unsigned previews. Download only from the official release page.</p>
+
+<h2>Earlier: VideoVault 1.4</h2>
 <ul>
 <li>New drag-to-Applications installer for Intel and Apple Silicon.</li>
 <li>Automatic signed update checks start on first launch. No scripts, signing keys, or Terminal setup are needed by users.</li>

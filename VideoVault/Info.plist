@@ -13,9 +13,9 @@
 	<key>CFBundleShortVersionString</key>
 	<string>1.5</string>
     <key>SUFeedURL</key>
-    <string>https://raw.githubusercontent.com/eMacTh3Creator/VideoVault/main/docs/appcast-v2.xml</string>
+    <string>https://raw.githubusercontent.com/eMacTh3Creator/VideoVault/main/docs/appcast-v3.xml</string>
     <key>SUPublicEDKey</key>
-    <string>G4xvh5KvyiYlDTnliM+n0HeHKkNAGbzK4AHGUI6XeiE=</string>
+    <string>uEQY1IOBVAkLhj30sO7MZ0Bc5fzxQhYU74PJ9+noghk=</string>
     <key>SURequireSignedFeed</key>
     <true/>
     <key>SUVerifyUpdateBeforeExtraction</key>

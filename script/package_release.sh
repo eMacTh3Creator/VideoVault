@@ -4,7 +4,7 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 OUTPUT=${1:-/tmp/VideoVault-release-artifacts}
 PACKAGES=${VIDEOVAULT_PACKAGES:-/tmp/VideoVault-packages}
 BUILD=${VIDEOVAULT_BUILD:-/tmp/VideoVault-release}
-ACCOUNT=${VIDEOVAULT_SIGNING_ACCOUNT:-videovault-v2}
+ACCOUNT=${VIDEOVAULT_SIGNING_ACCOUNT:-videovault-v3}
 SPARKLE="$PACKAGES/artifacts/sparkle/Sparkle/bin"
 VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$ROOT/VideoVault/Info.plist")
 BUILD_VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$ROOT/VideoVault/Info.plist")
@@ -34,12 +34,29 @@ ditto --norsrc --noextattr "${VIDEOVAULT_APP:-$BUILD/Build/Products/Release/Vide
 cp "$PACKAGES/checkouts/Sparkle/LICENSE" "$APP/Contents/Resources/Sparkle-LICENSE.txt"
 chmod -R u+w "$APP"
 xattr -cr "$APP"
-codesign --force --deep --sign "${VIDEOVAULT_SIGN_IDENTITY:--}" "$APP"
+IDENTITY=${VIDEOVAULT_SIGN_IDENTITY:--}
+if [[ "$IDENTITY" == '-' ]]; then
+    codesign --force --deep --sign - "$APP"
+else
+    # Sign nested code inside-out; do not rely on --deep for Developer ID releases.
+    while IFS= read -r -d '' BINARY; do
+        if file -b "$BINARY" | grep -q 'Mach-O'; then
+            codesign --force --options runtime --timestamp --preserve-metadata=entitlements --sign "$IDENTITY" "$BINARY"
+        fi
+    done < <(find "$APP/Contents/Frameworks" -type f -perm -111 -print0)
+    while IFS= read -r -d '' BUNDLE; do
+        codesign --force --options runtime --timestamp --preserve-metadata=entitlements --sign "$IDENTITY" "$BUNDLE"
+    done < <(find "$APP/Contents/Frameworks" -depth -type d \( -name '*.app' -o -name '*.xpc' -o -name '*.framework' \) -print0)
+    codesign --force --options runtime --timestamp --sign "$IDENTITY" "$APP"
+fi
 codesign --verify --deep --strict "$APP"
-lipo "$APP/Contents/MacOS/VideoVault" -verify_arch arm64 x86_64
+ARCHITECTURES=$(lipo -archs "$APP/Contents/MacOS/VideoVault")
+for ARCH in arm64 x86_64; do
+    [[ " $ARCHITECTURES " == *" $ARCH "* ]] || { echo "Missing release architecture: $ARCH" >&2; exit 1; }
+done
 [[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Contents/Info.plist")" == "$BUILD_VERSION" ]]
 [[ "$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$APP/Contents/Info.plist")" == "$EXPECTED_KEY" ]]
-[[ "$(/usr/libexec/PlistBuddy -c 'Print :SUFeedURL' "$APP/Contents/Info.plist")" == 'https://raw.githubusercontent.com/eMacTh3Creator/VideoVault/main/docs/appcast-v2.xml' ]]
+[[ "$(/usr/libexec/PlistBuddy -c 'Print :SUFeedURL' "$APP/Contents/Info.plist")" == 'https://raw.githubusercontent.com/eMacTh3Creator/VideoVault/main/docs/appcast-v3.xml' ]]
 
 DMGBUILD=${VIDEOVAULT_DMGBUILD:-$BUILD/dmg-venv/bin/dmgbuild}
 if [[ ! -x "$DMGBUILD" ]]; then
@@ -56,15 +73,15 @@ hdiutil verify "$DMG"
 FEED="$STAGE/feed"
 mkdir -p "$FEED"
 cp "$DMG" "$FEED/"
-if [[ -f "$ROOT/docs/appcast-v2.xml" ]]; then cp "$ROOT/docs/appcast-v2.xml" "$FEED/appcast-v2.xml"; fi
+if [[ -f "$ROOT/docs/appcast-v3.xml" ]]; then cp "$ROOT/docs/appcast-v3.xml" "$FEED/appcast-v3.xml"; fi
 cp "$ROOT/docs/release-notes.html" "$FEED/VideoVault-v${VERSION}-macOS.html"
 "$SPARKLE/generate_appcast" --account "$ACCOUNT" --versions "$BUILD_VERSION" --maximum-deltas 0 \
     --download-url-prefix "$PREFIX" --link 'https://emacth3creator.github.io/VideoVault/' \
-    --embed-release-notes -o "$FEED/appcast-v2.xml" "$FEED"
-"$SPARKLE/sign_update" --account "$ACCOUNT" --verify "$FEED/appcast-v2.xml"
-cp "$FEED/appcast-v2.xml" "$OUTPUT/appcast-v2.xml"
-swift "$ROOT/script/verify_release.swift" "$ROOT/VideoVault/Info.plist" "$OUTPUT/appcast-v2.xml" "$DMG"
+    --embed-release-notes -o "$FEED/appcast-v3.xml" "$FEED"
+"$SPARKLE/sign_update" --account "$ACCOUNT" --verify "$FEED/appcast-v3.xml"
+cp "$FEED/appcast-v3.xml" "$OUTPUT/appcast-v3.xml"
+swift "$ROOT/script/verify_release.swift" "$ROOT/VideoVault/Info.plist" "$OUTPUT/appcast-v3.xml" "$DMG"
 (cd "$OUTPUT" && shasum -a 256 "$(basename "$DMG")") > "$OUTPUT/SHA256SUMS-v${VERSION}.txt"
 echo "Release ready: $DMG"
-echo "Verified signed feed: $OUTPUT/appcast-v2.xml"
+echo "Verified signed feed: $OUTPUT/appcast-v3.xml"
 echo 'Publish the DMG to Releases/ and the signed feed to docs/ in the same commit.'

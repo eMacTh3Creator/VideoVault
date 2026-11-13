@@ -27,7 +27,7 @@ public static partial class DownloadPolicy
     public static bool CanForceRetry(string message) => !IsRestriction(message) && !new[]
         { "permission denied", "access to the path", "read-only file system", "no space left", "disk quota", "disk is full",
           "file name too long", "not installed", "unsupported url", "http error 404", "cannot find the file", "outside the destination" }
-        .Any(term => message.Contains(term, StringComparison.OrdinalIgnoreCase));
+        .Any(term => message.Split("\n\nBackup downloader:", StringSplitOptions.None)[0].Contains(term, StringComparison.OrdinalIgnoreCase));
 
     [GeneratedRegex(@"(?:ERROR:\s*)?The extracted extension[^\r\n]*unusual[^\r\n]*safety reasons\.[^\r\n]*(?:\r?\n(?:If you believe[^\r\n]*|Confirm you[^\r\n]*))*", RegexOptions.IgnoreCase)]
     private static partial Regex UnusualExtensionDiagnostic();

@@ -102,7 +102,8 @@ enum DownloadFailurePolicy {
     }
     static func canForceRetry(_ message: String) -> Bool {
         guard !isSiteRestriction(message) else { return false }
-        let text = message.lowercased()
+        // A missing backup plugin/tool must not prevent another primary attempt.
+        let text = message.components(separatedBy: "\n\nFallback:").first!.lowercased()
         return !["permission denied", "read-only file system", "no space left", "disk quota", "file name too long",
                  "not installed", "unsupported url", "http error 404"].contains { text.contains($0) }
     }

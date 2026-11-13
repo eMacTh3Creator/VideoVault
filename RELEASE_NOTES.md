@@ -1,3 +1,30 @@
+# VideoVault v1.5
+
+## Recovery Fixes
+
+- Recover automatically from optional postprocessing failures, including `ERROR: Postprocessing: Error opening output files: Invalid argument`.
+- Settings now includes **Automatically use Force Retry after recoverable failures** and **Maximum automatic Force Retry attempts**. Choose 1-10 extra attempts; the default is 3. Turning off automatic retries disables both network and forced attempts.
+- Each forced attempt skips optional thumbnail/metadata work, keeps the requested quality and duplicate policy, and can use supported backup downloaders. The retry budget is per download and is not multiplied by the two ordinary network retries.
+- Short, increasing backoff delays are cancellable. Disk/permission errors, DRM, login requirements, and website access restrictions do not trigger automatic force loops.
+- For postprocessing failures, retry yt-dlp with optional processing disabled before asking an unsupported Streamlink plugin to handle the page.
+- Clarify the Streamlink no-plugin message: a backup limitation does not establish whether the original video can be downloaded by yt-dlp.
+- Matching settings and recovery are included in Windows x64 and ARM64 builds, alongside the universal Intel/Apple Silicon Mac app.
+
+## Install and Update Channel
+
+**Mac users on v1.4 or earlier must install v1.5 manually once.** The previous `videovault-v2` publisher key is unavailable, so this release uses a new key and a separate signed `appcast-v3.xml` feed. The old feeds remain unchanged. After the manual installation, future updates use the new channel. Publisher keys are stored outside the repository and are never required by customers.
+
+The Mac build is Developer ID-signed but not Apple-notarized. Windows installers remain unsigned development previews and may trigger SmartScreen. The installers include the Windows .NET runtime; first-run downloader setup requires internet access. Portable Windows copies do not install app updates.
+
+## Verification
+
+- All 33 Mac core, recovery, dependency-installation, download/conversion, cancellation, duplicate, persistence, and responsiveness tests passed with no skips.
+- Regressions cover the screenshot's exact error, recovery after multiple forced attempts, the configured limit, disabled retries, real access restrictions, and cancellation during backoff.
+- The universal Mac binary, bundle signature, disk image, and new feed/archive signatures are checked during packaging. The running user application and VM are not opened or restarted.
+- Windows regression/integration and both architecture packages are validated by the hosted Windows workflow. Physical ARM64/x64 PC testing and an installed old-to-new Windows update remain separate validation gates.
+
+---
+
 # VideoVault v1.4
 
 - Drag-to-Applications DMG with a custom installer background and an Applications shortcut.
