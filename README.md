@@ -23,7 +23,7 @@
 
 VideoVault downloads video and audio using [yt-dlp](https://github.com/yt-dlp/yt-dlp). Paste links, choose a format, and let the queue run in the background.
 
-The Windows app is available as an unsigned preview alongside the Mac release. [Choose a platform on the website](https://emacth3creator.github.io/VideoVault/#downloads), or open the [v1.4 release](https://github.com/eMacTh3Creator/VideoVault/releases/tag/v1.4).
+The Windows app is available as an unsigned preview alongside the Mac release. [Choose a platform on the website](https://emacth3creator.github.io/VideoVault/#downloads), or open the [v1.5 release](https://github.com/eMacTh3Creator/VideoVault/releases/tag/v1.5).
 
 Supports YouTube, Vimeo, Twitter/X, TikTok, Instagram, Reddit, Twitch, and [1000+ other sites](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md).
 
@@ -71,27 +71,27 @@ Supports YouTube, Vimeo, Twitter/X, TikTok, Instagram, Reddit, Twitch, and [1000
 
 | Computer | Installer | Portable |
 |---|---|---|
-| Intel / AMD x64 | [Windows x64 Setup](https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.4/VideoVault-win-x64-Setup.exe) | [x64 ZIP](https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.4/VideoVault-win-x64-Portable.zip) |
-| Snapdragon / Windows ARM64 / Parallels on Apple Silicon | [Windows ARM64 Setup](https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.4/VideoVault-win-arm64-Setup.exe) | [ARM64 ZIP](https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.4/VideoVault-win-arm64-Portable.zip) |
+| Intel / AMD x64 | [Windows x64 Setup](https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.5/VideoVault-win-x64-Setup.exe) | [x64 ZIP](https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.5/VideoVault-win-x64-Portable.zip) |
+| Snapdragon / Windows ARM64 / Parallels on Apple Silicon | [Windows ARM64 Setup](https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.5/VideoVault-win-arm64-Setup.exe) | [ARM64 ZIP](https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.5/VideoVault-win-arm64-Portable.zip) |
 
 Run the matching installer, or extract the portable ZIP into its own folder and run `VideoVault.Windows.exe`. The .NET runtime is included. First-run tool installation needs internet access. These Windows 11 builds are unsigned and may trigger SmartScreen; no Windows security protections are disabled.
 
-Windows v1.4.0 includes the updated Settings display and background download workers. Portable copies do not install app updates. See the [Windows guide](VideoVault-Windows/README.md) for setup and the [release notes](https://github.com/eMacTh3Creator/VideoVault/releases/tag/v1.4) for build details.
+Windows v1.5.0 includes the updated Settings display and background download workers. Portable copies do not install app updates. See the [Windows guide](VideoVault-Windows/README.md) for setup and the [release notes](https://github.com/eMacTh3Creator/VideoVault/releases/tag/v1.5) for build details.
 
 The remaining usage and settings documentation below describes the Mac app; Windows-specific controls and build instructions are in the Windows guide.
 
 ### Option 1 — Download the installer (recommended)
 
-1. Download **[VideoVault-v1.4-macOS.dmg](https://github.com/eMacTh3Creator/VideoVault/raw/refs/heads/main/Releases/VideoVault-v1.4-macOS.dmg)**.
+1. Download **[VideoVault-v1.5-macOS.dmg](https://github.com/eMacTh3Creator/VideoVault/raw/refs/heads/main/Releases/VideoVault-v1.5-macOS.dmg)**.
 2. Open the disk image and drag **VideoVault** to **Applications**.
 3. Eject the disk image, then open **VideoVault** from Applications.
 4. Use the built-in buttons to install yt-dlp and ffmpeg during setup.
 
 The app checks for signed updates from its first launch and can download and install future published releases. Users never need a script, signing key, or Keychain setup. Automatic updates can be changed in Settings. Updates wait for active downloads before relaunching.
 
-**Upgrading from 1.3.x:** install 1.4 manually once to join the new signed update channel. Your existing settings and download queue use the same app identifier. Subsequent releases use the updater. The old channel remains available for copies using the original publisher key.
+**Upgrading from v1.4 or earlier:** install v1.5 manually once. The previous update-signing key is unavailable, so v1.5 uses a new publisher key and signed update channel. Your app identifier, queue, and existing settings are unchanged. Older feeds are preserved; future updates after this manual install use the new channel.
 
-Universal Intel and Apple Silicon build for macOS 13+. The app is ad-hoc signed, not Apple-notarized; first launch may require approval under **System Settings → Privacy & Security**.
+Universal Intel and Apple Silicon build for macOS 13+. The app is Developer ID-signed but not Apple-notarized; first launch may require approval under **System Settings → Privacy & Security**.
 
 ### First-start download tool setup
 
@@ -195,6 +195,8 @@ Metadata lookup has a timeout and is optional for downloading. Technical failure
 
 **Force Retry** is available in failed/cancelled download details and the right-click menu. It skips optional thumbnail/metadata processing and enables supported backup downloaders for that job, without changing your global settings or bypassing duplicate protection. A normal Retry restores your normal settings. Streamlink supports only a subset of sites, not every yt-dlp website. Website refusals, removed/private media, DRM, geo-blocks, and account restrictions remain errors; Force Retry does not bypass them or disable unsafe-file validation.
 
+In v1.5, Settings > Performance can automatically use Force Retry after recoverable failures. Choose **1-10 extra attempts**, with **3 by default**. Attempts use increasing, cancellable delays and stop at the configured limit. Turn off **Auto-retry failed downloads** to disable all automatic retries, or disable only automatic Force Retry to retain the two ordinary network retries. Disk/permission failures and real website restrictions do not trigger forced loops.
+
 ---
 
 ## Supported Sites
@@ -209,7 +211,7 @@ YouTube · Vimeo · Twitter/X · TikTok · Instagram · Reddit · Twitch · Dail
 
 Customers only install the DMG. Signing and publishing happen on a maintainer's Mac.
 
-The current release channel is `docs/appcast-v2.xml`, signed by the `videovault-v2` key in the publisher's login Keychain. Only its public key is embedded in the app. Keep the private key backed up securely when changing publishing Macs. Never commit it or distribute it to users. The original M5 key controls the legacy `docs/appcast.xml` feed only.
+The current release channel is `docs/appcast-v3.xml`, signed by the `videovault-v3` key in the publisher's login Keychain. Only the public key is embedded in the app. The old v2 key could not be recovered; the owner approved replacement and a one-time manual v1.5 install. Both older feeds are preserved. A private key backup is kept outside the repository with owner-only permissions. Never commit or distribute it.
 
 Update `CFBundleShortVersionString`, increment `CFBundleVersion`, update the release notes, then run:
 
@@ -220,7 +222,7 @@ bash script/publish_release.sh
 
 The publisher builds both architectures, creates the drag-to-Applications DMG, verifies the bundle and disk image, signs and verifies the update feed, then commits the versioned DMG and matching feed together. It refuses missing/mismatched keys, duplicate release versions, and uncommitted source changes. `git` push access is required on the publishing Mac. The GitHub release workflow verifies the signed DMG using only the public key, then automatically attaches it to a versioned GitHub Release. No private signing key is stored in GitHub Actions.
 
-`VIDEOVAULT_PACKAGES` selects the Xcode package cache; `VIDEOVAULT_BUILD` selects the build folder. `VIDEOVAULT_SIGNING_ACCOUNT` defaults to `videovault-v2`. Packaging uses `dmgbuild` 1.6.5 in an isolated Python environment. `VIDEOVAULT_DMGBUILD` can select an existing installation. For an Apple Developer ID release, set `VIDEOVAULT_SIGN_IDENTITY` and add Apple's notarization before distribution; current releases are ad-hoc signed.
+`VIDEOVAULT_PACKAGES` selects the Xcode package cache; `VIDEOVAULT_BUILD` selects the build folder. `VIDEOVAULT_SIGNING_ACCOUNT` defaults to `videovault-v3`. Packaging uses `dmgbuild` 1.6.5 in an isolated Python environment. `VIDEOVAULT_DMGBUILD` can select an existing installation. Set `VIDEOVAULT_SIGN_IDENTITY` for inside-out Developer ID signing with hardened runtime. Notarization is a separate step; v1.5 is Developer ID-signed but not notarized.
 
 To package without publishing, use `bash script/package_release.sh /tmp/VideoVault-release-artifacts`. To exercise update installation without touching `/Applications`, use `script/prepare_update_test.sh` with a signed app and a new temporary directory, then run Sparkle's test CLI against the isolated copy.
 

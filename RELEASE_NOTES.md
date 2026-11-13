@@ -21,7 +21,7 @@ The Mac build is Developer ID-signed but not Apple-notarized. Windows installers
 - All 33 Mac core, recovery, dependency-installation, download/conversion, cancellation, duplicate, persistence, and responsiveness tests passed with no skips.
 - Regressions cover the screenshot's exact error, recovery after multiple forced attempts, the configured limit, disabled retries, real access restrictions, and cancellation during backoff.
 - The universal Mac binary, bundle signature, disk image, and new feed/archive signatures are checked during packaging. The running user application and VM are not opened or restarted.
-- Windows regression/integration and both architecture packages are validated by the hosted Windows workflow. Physical ARM64/x64 PC testing and an installed old-to-new Windows update remain separate validation gates.
+- Hosted Windows validation passed 56 regression checks and 62 regression/integration checks, including the new automatic Force Retry cases. Both x64 and ARM64 packages were built successfully. Physical ARM64/x64 PC testing and an installed old-to-new Windows update remain separate validation gates.
 
 ---
 

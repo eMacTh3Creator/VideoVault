@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>BuildMachineOSBuild</key>
-	<string>25G313</string>
+	<string>26C5035r</string>
 	<key>CFBundleDisplayName</key>
 	<string>VideoVault</string>
 	<key>CFBundleExecutable</key>
@@ -19,29 +19,29 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.4</string>
+	<string>1.5</string>
 	<key>CFBundleSupportedPlatforms</key>
 	<array>
 		<string>MacOSX</string>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>8</string>
+	<string>9</string>
 	<key>DTCompiler</key>
 	<string>com.apple.compilers.llvm.clang.1_0</string>
 	<key>DTPlatformBuild</key>
-	<string>25F70</string>
+	<string>26B118</string>
 	<key>DTPlatformName</key>
 	<string>macosx</string>
 	<key>DTPlatformVersion</key>
-	<string>26.5</string>
+	<string>27.2</string>
 	<key>DTSDKBuild</key>
-	<string>25F70</string>
+	<string>26B118</string>
 	<key>DTSDKName</key>
-	<string>macosx26.5</string>
+	<string>macosx27.2</string>
 	<key>DTXcode</key>
-	<string>2660</string>
+	<string>2720</string>
 	<key>DTXcodeBuild</key>
-	<string>17F113</string>
+	<string>27B52</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.utilities</string>
 	<key>LSMinimumSystemVersion</key>
@@ -58,9 +58,9 @@
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
 	<key>SUFeedURL</key>
-	<string>https://raw.githubusercontent.com/eMacTh3Creator/VideoVault/main/docs/appcast-v2.xml</string>
+	<string>https://raw.githubusercontent.com/eMacTh3Creator/VideoVault/main/docs/appcast-v3.xml</string>
 	<key>SUPublicEDKey</key>
-	<string>G4xvh5KvyiYlDTnliM+n0HeHKkNAGbzK4AHGUI6XeiE=</string>
+	<string>uEQY1IOBVAkLhj30sO7MZ0Bc5fzxQhYU74PJ9+noghk=</string>
 	<key>SURequireSignedFeed</key>
 	<true/>
 	<key>SUScheduledCheckInterval</key>

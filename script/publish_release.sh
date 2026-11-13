@@ -19,6 +19,7 @@ codesign --verify --deep --strict "$MOUNT/VideoVault.app"
 ditto --norsrc --noextattr "$MOUNT/VideoVault.app" Releases/VideoVault.app
 hdiutil detach "$MOUNT"
 cp "$OUTPUT/VideoVault-v${VERSION}-macOS.dmg" Releases/
+cp "$OUTPUT/VideoVault-v${VERSION}-macOS.zip" Releases/
 cp "$OUTPUT/SHA256SUMS-v${VERSION}.txt" Releases/
 cp "$OUTPUT/appcast-v3.xml" docs/appcast-v3.xml
 python3 - "$VERSION" <<'PY'
@@ -28,7 +29,7 @@ for filename in ['README.md', 'docs/index.html']:
     p = Path(filename)
     p.write_text(re.sub(r'VideoVault-v[0-9.]+-macOS\.dmg', 'VideoVault-v' + sys.argv[1] + '-macOS.dmg', p.read_text()))
 PY
-git add Releases/VideoVault.app "Releases/VideoVault-v${VERSION}-macOS.dmg" "Releases/SHA256SUMS-v${VERSION}.txt" docs/appcast-v3.xml README.md docs/index.html
+git add Releases/VideoVault.app "Releases/VideoVault-v${VERSION}-macOS.dmg" "Releases/VideoVault-v${VERSION}-macOS.zip" "Releases/SHA256SUMS-v${VERSION}.txt" docs/appcast-v3.xml README.md docs/index.html
 git commit -m "Publish VideoVault v${VERSION} installer and signed update feed"
 git push origin main
 echo "Published v$VERSION. Versions before 1.5 need one manual install to join the v3 update channel."

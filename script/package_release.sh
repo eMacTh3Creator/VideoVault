@@ -68,6 +68,8 @@ mkdir -p "$OUTPUT"
 DMG="$OUTPUT/VideoVault-v${VERSION}-macOS.dmg"
 "$DMGBUILD" -s "$ROOT/script/dmg_settings.py" -D app="$APP" -D background="$STAGE/background.png" 'Install VideoVault' "$DMG"
 hdiutil verify "$DMG"
+ZIP="$OUTPUT/VideoVault-v${VERSION}-macOS.zip"
+ditto -c -k --norsrc --noextattr --keepParent "$APP" "$ZIP"
 
 # Keep only this release in the generation directory; do not sign test builds.
 FEED="$STAGE/feed"
@@ -81,7 +83,7 @@ cp "$ROOT/docs/release-notes.html" "$FEED/VideoVault-v${VERSION}-macOS.html"
 "$SPARKLE/sign_update" --account "$ACCOUNT" --verify "$FEED/appcast-v3.xml"
 cp "$FEED/appcast-v3.xml" "$OUTPUT/appcast-v3.xml"
 swift "$ROOT/script/verify_release.swift" "$ROOT/VideoVault/Info.plist" "$OUTPUT/appcast-v3.xml" "$DMG"
-(cd "$OUTPUT" && shasum -a 256 "$(basename "$DMG")") > "$OUTPUT/SHA256SUMS-v${VERSION}.txt"
+(cd "$OUTPUT" && shasum -a 256 "$(basename "$DMG")" "$(basename "$ZIP")") > "$OUTPUT/SHA256SUMS-v${VERSION}.txt"
 echo "Release ready: $DMG"
 echo "Verified signed feed: $OUTPUT/appcast-v3.xml"
 echo 'Publish the DMG to Releases/ and the signed feed to docs/ in the same commit.'

@@ -1,5 +1,17 @@
 # Windows Development Build Verification
 
+## Version 1.5.0 - 2026-11-13
+
+- Hosted Windows x64 workflow: 56 regression checks and 62 regression/local-media integration checks passed.
+- Screenshot postprocessing error recovery, multiple forced attempts, per-job retry limits, opt-outs, cancellation during backoff, and missing-backup behavior passed.
+- Defaults from older settings remain compatible; automatic Force Retry defaults to three additional attempts and accepts a saved 1-10 limit.
+- Independent workers, process-tree cancellation, duplicate protection, native Settings controls, and actual yt-dlp/FFmpeg downloads/conversions passed.
+- Both self-contained x64 and ARM64 installer, portable, and updater packages were built by the hosted workflow. The user's VM and running apps were not controlled or restarted.
+- Workflow evidence: https://github.com/eMacTh3Creator/VideoVault/actions/runs/43520035851
+- Unsigned Windows preview. Physical PC checks and an installed old-to-new Windows update remain separate validation gates.
+
+## Earlier Version 1.4.0
+
 Date: 2026-10-07. Environment: Windows 11 ARM64 in Parallels, .NET SDK 10.0.401, Windows Desktop Runtime 10.0.12.
 
 - Solution build: succeeded, zero warnings and zero errors.

@@ -17,6 +17,7 @@ For reliable builds in a VM, keep the build checkout on the Windows disk, such a
 - Verified first-run installation/repair of yt-dlp, FFmpeg/ffprobe, Deno, and Streamlink. Tools live under `%LOCALAPPDATA%\VideoVault\tools`. Streamlink's upstream Windows distribution is currently x64 and uses Windows emulation on ARM64; the app, yt-dlp, and FFmpeg have native ARM64 builds.
 - Duplicate skips using a destination-side URL/media-ID index, destination filename checks, and SHA-256 content coalescing. The duplicate finder skips reparse points and verifies content before moving a selected redundant copy to the Recycle Bin.
 - Automatic thumbnail-free recovery for the unusual-extension error. Force Retry skips optional metadata and thumbnail work and enables the independent backup for that job.
+- Automatic Force Retry after recoverable failures, with a saved 1-10-attempt limit (default 3). Short cancellable delays and one per-job budget prevent retry multiplication. Disable automatic retries to stop all retries, or only disable automatic Force Retry to retain ordinary network retries.
 - Streamlink for supported pages and FFmpeg for direct media. Recovery is not universal and never bypasses DRM, login, or website access restrictions.
 - Home navigation preserves the queue. Search, status filters, drag-and-drop URLs, and native folder selection.
 - Tray counts for active, queued, and failed jobs; quick-paste best video/audio without opening the window; pause/resume/retry/quit actions; completion notifications.
@@ -41,8 +42,8 @@ Tests use isolated temporary queue/settings directories. Synthetic subprocess te
 ## Package
 
 ```powershell
-./scripts/build-release.ps1 -Runtime win-x64 -Version 1.4.0
-./scripts/build-release.ps1 -Runtime win-arm64 -Version 1.4.0
+./scripts/build-release.ps1 -Runtime win-x64 -Version 1.5.0
+./scripts/build-release.ps1 -Runtime win-arm64 -Version 1.5.0
 ```
 
 Packages appear in `artifacts\win-x64` and `artifacts\win-arm64`, with installers, portable archives, update packages/feeds, and SHA-256 checksums. The app runtime is self-contained; downloader tools are installed with checksum verification on first launch. Internet access is needed for tool setup and updates.
@@ -53,6 +54,6 @@ Unsigned installers can trigger Windows SmartScreen. Signing a Windows release r
 
 ## Release details
 
-Windows installers and portable builds are included in [release v1.4](https://github.com/eMacTh3Creator/VideoVault/releases/tag/v1.4). See the release notes for testing details and build status.
+Windows installers and portable builds are included in [release v1.5](https://github.com/eMacTh3Creator/VideoVault/releases/tag/v1.5). See the release notes for testing details and build status.
 
 Application source is covered by the repository's root `LICENSE`. Download dependencies retain their upstream licenses and are fetched separately from official releases. FFmpeg GPL build license/source information is preserved in its extracted dependency directory.

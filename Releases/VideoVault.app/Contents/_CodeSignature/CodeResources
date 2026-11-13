@@ -10,7 +10,7 @@
 		</data>
 		<key>Resources/Assets.car</key>
 		<data>
-		rHmq+m5xnTzsse5fP55OUZFnlio=
+		skdCR6mcIlY318m9rU2eSYEGIqo=
 		</data>
 		<key>Resources/Sparkle-LICENSE.txt</key>
 		<data>
@@ -23,10 +23,10 @@
 		<dict>
 			<key>cdhash</key>
 			<data>
-			DdrsqB4Cx4Mw0YTyG07iMAtUotg=
+			zWBq8LTequXsUGPRVMBuYz+/Z2s=
 			</data>
 			<key>requirement</key>
-			<string>cdhash H"0ddaeca81e02c78330d184f21b4ee2300b54a2d8" or cdhash H"bfec90974891621ad25d8f0ef7e4c251326d8418"</string>
+			<string>identifier "org.sparkle-project.Sparkle" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = TS7Y9PMXV4</string>
 		</dict>
 		<key>Resources/AppIcon.icns</key>
 		<dict>
@@ -39,7 +39,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			ao8AxdoCgX3sCbyWBBrLGSOBEz047Vl2ZhgTYiJqIMw=
+			56HQ4PZgkN11FgNPVZVv2gJ12OcxRBpA4Gtk/CJ1Bgo=
 			</data>
 		</dict>
 		<key>Resources/Sparkle-LICENSE.txt</key>
