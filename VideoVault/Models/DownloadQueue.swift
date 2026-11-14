@@ -1,6 +1,28 @@
 import Foundation
 import Combine
 
+struct DownloadSelection {
+    let items: [DownloadItem]
+
+    init(ids: Set<UUID>, in items: [DownloadItem]) {
+        self.items = items.filter { ids.contains($0.id) }
+    }
+
+    var ids: Set<UUID> { Set(items.map(\.id)) }
+    var retryableIDs: Set<UUID> { Set(items.filter { $0.status.canRetry }.map(\.id)) }
+    var cancellableIDs: Set<UUID> { Set(items.filter { $0.status.isActive || $0.status == .queued }.map(\.id)) }
+    var copiedURLs: String { items.map(\.url).joined(separator: "\n") }
+    var fileURLs: [URL] {
+        var seen = Set<String>()
+        return items.compactMap { item in
+            guard item.status == .completed || item.status == .skipped,
+                  let path = item.filePath, !path.isEmpty,
+                  seen.insert(path).inserted else { return nil }
+            return URL(fileURLWithPath: path)
+        }
+    }
+}
+
 struct QueueCounts: Equatable, Sendable {
     var active = 0
     var queued = 0

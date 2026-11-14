@@ -8,29 +8,27 @@ git fetch origin main
 git merge --ff-only origin/main
 VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' VideoVault/Info.plist)
 [[ ! -e "Releases/VideoVault-v${VERSION}-macOS.dmg" && ! -e "Releases/VideoVault-v${VERSION}-macOS-notarized.dmg" ]] || { echo 'This version is already released. Increment both app version and build number.' >&2; exit 1; }
-PROFILE=${VIDEOVAULT_NOTARY_PROFILE:-}
-if [[ -n "$PROFILE" ]]; then
-    [[ -n "${VIDEOVAULT_SIGN_IDENTITY:-}" && "$VIDEOVAULT_SIGN_IDENTITY" != '-' ]] || { echo 'Set a Developer ID signing identity for notarization.' >&2; exit 1; }
-    xcrun notarytool history --keychain-profile "$PROFILE" --output-format json >/dev/null
-fi
+PROFILE=${VIDEOVAULT_NOTARY_PROFILE:-VideoVaultNotary}
+[[ -n "${VIDEOVAULT_SIGN_IDENTITY:-}" && "$VIDEOVAULT_SIGN_IDENTITY" != '-' ]] || { echo 'Public Mac releases require a Developer ID signing identity and Apple notarization.' >&2; exit 1; }
+xcrun notarytool history --keychain-profile "$PROFILE" --output-format json >/dev/null
 OUTPUT=$(mktemp -d /tmp/VideoVault-publish.XXXXXX)
 MOUNT="$OUTPUT/mount"
 cleanup() { if mount | grep -Fq " on $MOUNT "; then hdiutil detach "$MOUNT"; fi; }
 trap cleanup EXIT
+TEST_LOG="$OUTPUT/test-results.log"
+VIDEOVAULT_TEST_ROOT="$OUTPUT/tests" VIDEOVAULT_VERIFY_DEPENDENCIES=1 swift test > "$TEST_LOG" 2>&1
 bash script/package_release.sh "$OUTPUT"
-SUFFIX=''
-if [[ -n "$PROFILE" ]]; then
-    VIDEOVAULT_NOTARY_ARCHIVE="$OUTPUT/VideoVault-v${VERSION}-macOS.zip" bash script/notarize_release.sh "$OUTPUT/notarized" "$PROFILE"
-    OUTPUT="$OUTPUT/notarized"
-    SUFFIX='-notarized'
-fi
+VIDEOVAULT_NOTARY_ARCHIVE="$OUTPUT/VideoVault-v${VERSION}-macOS.zip" bash script/notarize_release.sh "$OUTPUT/notarized" "$PROFILE"
+OUTPUT="$OUTPUT/notarized"
+SUFFIX='-notarized'
+python3 script/record_release_evidence.py "$OUTPUT" "$TEST_LOG"
 mkdir -p "$MOUNT"
 hdiutil attach -readonly -nobrowse -mountpoint "$MOUNT" "$OUTPUT/VideoVault-v${VERSION}-macOS${SUFFIX}.dmg"
 codesign --verify --deep --strict "$MOUNT/VideoVault.app"
 ditto --norsrc --noextattr "$MOUNT/VideoVault.app" Releases/VideoVault.app
 xattr -cr Releases/VideoVault.app
 codesign --verify --deep --strict Releases/VideoVault.app
-if [[ "$SUFFIX" == '-notarized' ]]; then xcrun stapler validate Releases/VideoVault.app; fi
+xcrun stapler validate Releases/VideoVault.app
 hdiutil detach "$MOUNT"
 cp "$OUTPUT/VideoVault-v${VERSION}-macOS${SUFFIX}.dmg" Releases/
 cp "$OUTPUT/VideoVault-v${VERSION}-macOS${SUFFIX}.zip" Releases/
@@ -48,7 +46,7 @@ for filename in ['README.md', 'docs/index.html']:
     text = re.sub(r'https://github.com/eMacTh3Creator/VideoVault/releases/download/v[0-9.]+/SHA256SUMS-v[0-9.]+(?:-notarized)?\.txt', base + 'SHA256SUMS-v' + sys.argv[1] + sys.argv[2] + '.txt', text)
     p.write_text(text)
 PY
-git add Releases/VideoVault.app "Releases/VideoVault-v${VERSION}-macOS${SUFFIX}.dmg" "Releases/VideoVault-v${VERSION}-macOS${SUFFIX}.zip" "Releases/SHA256SUMS-v${VERSION}${SUFFIX}.txt" docs/appcast-v3.xml README.md docs/index.html
+git add Releases/VideoVault.app "Releases/VideoVault-v${VERSION}-macOS${SUFFIX}.dmg" "Releases/VideoVault-v${VERSION}-macOS${SUFFIX}.zip" "Releases/SHA256SUMS-v${VERSION}${SUFFIX}.txt" "Releases/VALIDATION-v${VERSION}.md" "Releases/NOTARIZATION-v${VERSION}.md" docs/appcast-v3.xml README.md docs/index.html
 git commit -m "Publish VideoVault v${VERSION} installer and signed update feed"
 git push origin main
 echo "Published v$VERSION. Versions before 1.5 need one manual install to join the v3 update channel."

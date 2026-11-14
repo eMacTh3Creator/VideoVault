@@ -1,3 +1,28 @@
+# VideoVault v1.5.1
+
+## Mac Multi-Selection
+
+- Command-A selects every download currently shown in the list, respecting search and status filters. Command-click toggles individual downloads; Shift-click selects a range.
+- Right-click a selected row for batch Retry, Force Retry, Cancel, Copy URLs, Show in Finder, and Remove. The detail panel also provides these actions with eligible-item counts.
+- Selection uses stable download IDs, so progress and metadata updates do not replace the selection. Hidden and removed rows are excluded.
+- Retry affects failed/cancelled downloads only; Cancel affects active/queued downloads only. Bulk actions update the queue once instead of repeatedly starting and stopping selected jobs.
+- Command-C copies selected URLs, one per line. Delete removes selected list entries; multiple removals require confirmation. Saved files are never deleted by Remove.
+
+## Downloads and Updates
+
+The universal Intel/Apple Silicon Mac app and DMG are Developer ID-signed and Apple-notarized, with stapled tickets. Download the **-notarized.dmg** installer or **-notarized.zip** app bundle. Mac v1.5 users can use the existing signed automatic update channel. Users on v1.4 or earlier must install v1.5.1 manually once; queue and settings are kept.
+
+**Windows remains at v1.5.0.** Its existing unsigned x64/ARM64 installers, portable ZIPs, and updater feeds/packages are carried forward unchanged for compatibility with Windows update checks. This Mac release does not add Windows multi-selection.
+
+## Verification
+
+- All 39 Mac tests passed with zero failures and zero skips, including live dependency installation, real local-media downloads/conversion, recovery, duplicate handling, cancellation, persistence, and responsiveness.
+- Six new selection tests cover stable IDs, visible-row scoping, mixed-status eligibility, forced versus normal batch retries, 2,000 selected jobs, and stopping/removing workers without deleting files or restoring removed rows.
+- Universal arm64/x86_64 build completed. Interactive shortcut/menu testing is not claimed: the user's running app and VM remain untouched.
+- Release checks require Developer ID signing, Apple notarization, stapled tickets, signed Sparkle feed/archive verification, and matching public checksums. Submission and package-validation evidence accompany this release.
+
+---
+
 # VideoVault v1.5
 
 ## Recovery Fixes

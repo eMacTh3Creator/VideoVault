@@ -4,9 +4,10 @@ struct SidebarView: View {
     @EnvironmentObject var queue: DownloadQueue
     @EnvironmentObject var manager: DownloadManager
 
-    @Binding var selectedItem: DownloadItem?
+    @Binding var selectedIDs: Set<UUID>
     @Binding var filterStatus: ContentView.FilterOption
     @Binding var showAddSheet: Bool
+    var onRemove: (Set<UUID>) -> Void
 
     @State private var searchText = ""
 
@@ -31,6 +32,8 @@ struct SidebarView: View {
         return items
     }
 
+    private var visibleIDs: Set<UUID> { Set(filteredItems.map(\.id)) }
+
     var body: some View {
         VStack(spacing: 0) {
             // Header
@@ -51,6 +54,9 @@ struct SidebarView: View {
 
             // Bottom bar
             bottomBar
+        }
+        .onChange(of: visibleIDs) { ids in
+            selectedIDs.formIntersection(ids)
         }
     }
 
@@ -135,14 +141,29 @@ struct SidebarView: View {
     // MARK: - List
 
     private var downloadList: some View {
-        List(filteredItems, selection: $selectedItem) { item in
+        List(filteredItems, selection: $selectedIDs) { item in
             DownloadRowView(item: item)
-                .tag(item)
-                .contextMenu {
-                    contextMenuItems(for: item)
-                }
+                .tag(item.id)
         }
         .listStyle(.sidebar)
+        .contextMenu(forSelectionType: UUID.self) { ids in
+            let selection = DownloadSelection(ids: ids, in: filteredItems)
+            if selection.items.isEmpty {
+                Button("Select All Shown Downloads") { selectedIDs = visibleIDs }
+                Button("Add URLs...") { showAddSheet = true }
+            } else {
+                contextMenuItems(for: selection)
+            }
+        }
+        // Keep these commands on the list so editing search text retains native shortcuts.
+        .onCommand(#selector(NSText.selectAll(_:))) { selectedIDs = visibleIDs }
+        .onCopyCommand {
+            let selection = DownloadSelection(ids: selectedIDs, in: filteredItems)
+            return selection.items.isEmpty ? [] : [NSItemProvider(object: selection.copiedURLs as NSString)]
+        }
+        .onDeleteCommand { onRemove(selectedIDs) }
+        .accessibilityLabel("Downloads")
+        .help("Command-A selects all shown downloads. Command-click toggles items; Shift-click selects a range.")
     }
 
     private var emptyList: some View {
@@ -164,7 +185,7 @@ struct SidebarView: View {
 
     private var bottomBar: some View {
         HStack {
-            Text("\(queue.items.count) items")
+            Text(selectedIDs.isEmpty ? "\(filteredItems.count) of \(queue.items.count) items" : "\(selectedIDs.count) selected")
                 .font(.caption)
                 .foregroundColor(.secondary)
 
@@ -191,34 +212,40 @@ struct SidebarView: View {
     // MARK: - Context Menu
 
     @ViewBuilder
-    private func contextMenuItems(for item: DownloadItem) -> some View {
-        if item.status.isActive {
-            Button("Cancel") { manager.cancelDownload(item) }
+    private func contextMenuItems(for selection: DownloadSelection) -> some View {
+        if !selection.cancellableIDs.isEmpty {
+            Button(selection.items.count == 1 ? "Cancel" : "Cancel (\(selection.cancellableIDs.count))") {
+                manager.cancelItems(selection.ids)
+            }
         }
 
-        if item.status.canRetry {
-            Button("Retry") { manager.retryItem(item) }
-            Button("Force Retry") { manager.retryItem(item, forceRecovery: true) }
+        Button(selection.items.count == 1 ? "Retry" : "Retry (\(selection.retryableIDs.count))") {
+            manager.retryItems(selection.ids)
         }
+        .disabled(selection.retryableIDs.isEmpty)
+        Button(selection.items.count == 1 ? "Force Retry" : "Force Retry (\(selection.retryableIDs.count))") {
+            manager.retryItems(selection.ids, forceRecovery: true)
+        }
+        .disabled(selection.retryableIDs.isEmpty)
 
-        if (item.status == .completed || item.status == .skipped), let path = item.filePath {
-            Button("Show in Finder") { StorageManager.shared.openInFinder(path: path) }
+        if !selection.fileURLs.isEmpty {
+            Button("Show in Finder") {
+                let live = DownloadSelection(ids: selection.ids, in: queue.items)
+                NSWorkspace.shared.activateFileViewerSelecting(live.fileURLs)
+            }
         }
 
         Divider()
 
-        Button("Copy URL") {
+        Button(selection.items.count == 1 ? "Copy URL" : "Copy URLs") {
+            let live = DownloadSelection(ids: selection.ids, in: queue.items)
             NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(item.url, forType: .string)
+            NSPasteboard.general.setString(live.copiedURLs, forType: .string)
         }
 
         Divider()
 
-        Button("Remove", role: .destructive) {
-            if item.status.isActive { manager.cancelDownload(item) }
-            queue.removeItem(item)
-            if selectedItem == item { selectedItem = nil }
-        }
+        Button(selection.items.count == 1 ? "Remove" : "Remove (\(selection.items.count))", role: .destructive) { onRemove(selection.ids) }
     }
 }
 

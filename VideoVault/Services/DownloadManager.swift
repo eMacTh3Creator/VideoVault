@@ -109,10 +109,33 @@ final class DownloadManager: ObservableObject {
     }
 
     func cancelDownload(_ item: DownloadItem) {
-        progressBuffers[item.id]?.close()
-        activeTasks[item.id]?.cancel()
-        DownloadQueue.shared.cancelItem(item)
+        cancelItems([item.id])
+    }
+
+    func cancelItems(_ ids: Set<UUID>) {
+        let selection = DownloadSelection(ids: ids, in: DownloadQueue.shared.items)
+        let cancelled = selection.items.filter { $0.status.isActive || $0.status == .queued }.map { item in
+            progressBuffers[item.id]?.close()
+            activeTasks[item.id]?.cancel()
+            var updated = item
+            updated.status = .cancelled
+            return updated
+        }
+        guard !cancelled.isEmpty else { return }
+        DownloadQueue.shared.updateItems(cancelled)
         // Keep the slot until this worker and its subprocesses have actually stopped.
+        processQueue()
+    }
+
+    func removeItems(_ ids: Set<UUID>) {
+        let items = DownloadSelection(ids: ids, in: DownloadQueue.shared.items).items
+        guard !items.isEmpty else { return }
+        for item in items {
+            progressBuffers[item.id]?.close()
+            activeTasks[item.id]?.cancel()
+        }
+        // Removing history never removes downloaded files, and workers cannot reinsert removed rows.
+        DownloadQueue.shared.removeItems(items)
         processQueue()
     }
 
@@ -135,18 +158,31 @@ final class DownloadManager: ObservableObject {
     }
 
     func retryItem(_ item: DownloadItem, forceRecovery: Bool = false) {
-        guard activeTasks[item.id] == nil else { return }
-        var updated = item
-        updated.status = .queued
-        updated.errorMessage = nil
-        updated.retryCount = 0
-        updated.forceRecovery = forceRecovery ? true : nil
-        DownloadQueue.shared.updateItem(updated)
+        guard let live = DownloadQueue.shared.items.first(where: { $0.id == item.id }), activeTasks[item.id] == nil else { return }
+        enqueueRetries([live], forceRecovery: forceRecovery)
+    }
+
+    func retryItems(_ ids: Set<UUID>, forceRecovery: Bool = false) {
+        let items = DownloadSelection(ids: ids, in: DownloadQueue.shared.items).items
+            .filter { $0.status.canRetry && activeTasks[$0.id] == nil }
+        enqueueRetries(items, forceRecovery: forceRecovery)
+    }
+
+    private func enqueueRetries(_ items: [DownloadItem], forceRecovery: Bool) {
+        guard !items.isEmpty else { return }
+        DownloadQueue.shared.updateItems(items.map { item in
+            var updated = item
+            updated.status = .queued
+            updated.errorMessage = nil
+            updated.retryCount = 0
+            updated.forceRecovery = forceRecovery ? true : nil
+            return updated
+        })
         processQueue()
     }
 
     func retryAllFailed() {
-        for item in DownloadQueue.shared.failedItems where activeTasks[item.id] == nil { retryItem(item) }
+        retryItems(Set(DownloadQueue.shared.failedItems.map(\.id)))
     }
 
     nonisolated static func urls(from text: String) -> [String] {

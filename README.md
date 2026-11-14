@@ -23,7 +23,7 @@
 
 VideoVault downloads video and audio using [yt-dlp](https://github.com/yt-dlp/yt-dlp). Paste links, choose a format, and let the queue run in the background.
 
-The Windows app is available as an unsigned preview alongside the Mac release. [Choose a platform on the website](https://emacth3creator.github.io/VideoVault/#downloads), or open the [v1.5 release](https://github.com/eMacTh3Creator/VideoVault/releases/tag/v1.5).
+The latest Mac release is v1.5.1; Windows remains at v1.5.0 as an unsigned preview. [Choose a platform on the website](https://emacth3creator.github.io/VideoVault/#downloads), or open the [v1.5.1 release](https://github.com/eMacTh3Creator/VideoVault/releases/tag/v1.5.1).
 
 Supports YouTube, Vimeo, Twitter/X, TikTok, Instagram, Reddit, Twitch, and [1000+ other sites](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md).
 
@@ -32,6 +32,7 @@ Supports YouTube, Vimeo, Twitter/X, TikTok, Instagram, Reddit, Twitch, and [1000
 ## Features
 
 - **Batch downloads** — paste multiple URLs, one per line, and add them to the queue together
+- **Mac multi-selection** — Command-A, Command-click, and Shift-click with batch Retry, Force Retry, Cancel, Copy URLs, Finder, and Remove actions
 - **Multiple formats** — MP3 audio, 720p / 1080p / 1440p / 4K video, or best available
 - **Background processing** — downloads run in background workers
 - **Configurable concurrency** — run 1–8 simultaneous downloads
@@ -82,14 +83,14 @@ The remaining usage and settings documentation below describes the Mac app; Wind
 
 ### Option 1 — Download the installer (recommended)
 
-1. Download **[VideoVault-v1.5-macOS-notarized.dmg](https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.5/VideoVault-v1.5-macOS-notarized.dmg)**.
+1. Download **[VideoVault-v1.5.1-macOS-notarized.dmg](https://github.com/eMacTh3Creator/VideoVault/releases/download/v1.5.1/VideoVault-v1.5.1-macOS-notarized.dmg)**.
 2. Open the disk image and drag **VideoVault** to **Applications**.
 3. Eject the disk image, then open **VideoVault** from Applications.
 4. Use the built-in buttons to install yt-dlp and ffmpeg during setup.
 
 The app checks for signed updates from its first launch and can download and install future published releases. Users never need a script, signing key, or Keychain setup. Automatic updates can be changed in Settings. Updates wait for active downloads before relaunching.
 
-**Upgrading from v1.4 or earlier:** install v1.5 manually once. The previous update-signing key is unavailable, so v1.5 uses a new publisher key and signed update channel. Your app identifier, queue, and existing settings are unchanged. Older feeds are preserved; future updates after this manual install use the new channel.
+**Upgrading from v1.4 or earlier:** install v1.5.1 manually once. The previous update-signing key is unavailable; releases from v1.5 onward use a replacement publisher key and signed update channel. Your app identifier, queue, and existing settings are unchanged. Older feeds are preserved; future updates after this manual install use the new channel. Existing v1.5 users can update normally.
 
 Universal Intel and Apple Silicon build for macOS 13+. The app and disk image are Developer ID-signed and Apple-notarized, with stapled tickets. Gatekeeper accepts both. macOS may still show its normal first-open confirmation for a downloaded app.
 
@@ -153,12 +154,20 @@ Downloads begin automatically when you add URLs. You can also:
 - **⌘R** — manually start processing the queue
 - **⌘.** — stop all active downloads
 - Click any item in the sidebar to see live progress in the detail panel
-- Right-click any item for options: Cancel, Retry, Show in Finder, Copy URL, Delete
+- Right-click any item for options: Cancel, Retry, Force Retry, Show in Finder, Copy URL, Remove
 - **Home** in the toolbar returns to the native welcome screen while keeping your queue and files
 - Click or right-click the menu bar download icon for counts and quick paste actions
 - **Find Duplicates** scans the destination recursively and compares bytes, not just filenames
 
 With duplicate skipping enabled, repeats of the same media and format are skipped before downloading when indexed files still exist. Exact duplicate content discovered after downloading is consolidated without losing the existing copy. Different formats are separately indexed; pre-existing unindexed files can only be recognized by their content after the download. The duplicate finder always keeps at least one copy and re-verifies selected files before moving extras to Trash.
+
+### Selecting multiple downloads (Mac v1.5.1)
+
+Click the download list, then press **Command-A** to select every download currently shown. Search and status filters limit Select All to visible rows. **Command-click** toggles individual downloads; **Shift-click** selects a range. Selection stays attached to the same downloads as their progress changes.
+
+Right-click a selected row to act on the selection: **Retry**, **Force Retry**, **Cancel**, **Copy URLs**, **Show in Finder**, or **Remove**. The detail panel also provides these batch actions. Retry applies only to failed or cancelled downloads; Cancel applies only to active or queued downloads. Counts show how many selected downloads qualify.
+
+**Command-C** copies selected URLs, one per line. **Delete** removes selected list entries; removing multiple entries asks for confirmation. Saved files are never deleted by Remove. Click an unselected row to return to a single selection, or choose Home to clear the selection.
 
 ---
 
@@ -211,6 +220,8 @@ YouTube · Vimeo · Twitter/X · TikTok · Instagram · Reddit · Twitch · Dail
 
 Customers only install the DMG. Signing and publishing happen on a maintainer's Mac.
 
+Every public Mac release must be Developer ID-signed, Apple-notarized, stapled, and verified, with the GitHub release and download website updated together. `script/publish_release.sh` requires a Developer ID identity and uses the `VideoVaultNotary` Keychain profile by default; it refuses unsigned/ad-hoc public releases. Work remains in the background without replacing or relaunching a running user app.
+
 The current release channel is `docs/appcast-v3.xml`, signed by the `videovault-v3` key in the publisher's login Keychain. Only the public key is embedded in the app. The old v2 key could not be recovered; the owner approved replacement and a one-time manual v1.5 install. Both older feeds are preserved. A private key backup is kept outside the repository with owner-only permissions. Never commit or distribute it.
 
 Update `CFBundleShortVersionString`, increment `CFBundleVersion`, update the release notes, then run:
@@ -224,7 +235,7 @@ bash script/publish_release.sh
 
 The publisher builds both architectures, creates the drag-to-Applications DMG, verifies the bundle and disk image, signs and verifies the update feed, then commits the versioned DMG and matching feed together. It refuses missing/mismatched keys, duplicate release versions, and uncommitted source changes. `git` push access is required on the publishing Mac. The GitHub release workflow verifies the signed DMG using only the public key, then automatically attaches it to a versioned GitHub Release. No private signing key is stored in GitHub Actions.
 
-`VIDEOVAULT_PACKAGES` selects the Xcode package cache; `VIDEOVAULT_BUILD` selects the build folder. `VIDEOVAULT_SIGNING_ACCOUNT` defaults to `videovault-v3`. Packaging uses `dmgbuild` 1.6.5 in an isolated Python environment. `VIDEOVAULT_DMGBUILD` can select an existing installation. Set `VIDEOVAULT_SIGN_IDENTITY` for inside-out Developer ID signing with hardened runtime. When `VIDEOVAULT_NOTARY_PROFILE` is set, publishing requires Apple acceptance, staples and validates app/DMG tickets, verifies Gatekeeper acceptance, and signs the final download feed only after notarization.
+`VIDEOVAULT_PACKAGES` selects the Xcode package cache; `VIDEOVAULT_BUILD` selects the build folder. `VIDEOVAULT_SIGNING_ACCOUNT` defaults to `videovault-v3`. Packaging uses `dmgbuild` 1.6.5 in an isolated Python environment. `VIDEOVAULT_DMGBUILD` can select an existing installation. Set `VIDEOVAULT_SIGN_IDENTITY` for inside-out Developer ID signing with hardened runtime. Publishing always requires Apple acceptance using `VIDEOVAULT_NOTARY_PROFILE` (default: `VideoVaultNotary`), staples and validates app/DMG tickets, verifies Gatekeeper acceptance, and signs the final download feed only after notarization. It runs the complete isolated test suite and records validation/notarization evidence before publishing. The workflow carries existing Windows assets into a Mac-only release so Windows update checks keep working.
 
 For an already-published signed version, run `bash script/notarize_release.sh /tmp/VideoVault-notarized-new VideoVaultNotary` with a new output directory. It notarizes the existing release without launching the app and emits `-notarized` filenames, notarization receipts, checksums, and a matching signed feed. Preserve the original downloads so cached signed feeds remain valid. Apple credentials stay in Keychain; never put passwords or private API keys in Git.
 

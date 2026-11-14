@@ -18,19 +18,22 @@ jobs:
         run: |
           VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' VideoVault/Info.plist)
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
-          SUFFIX=''
-          if [[ -f "Releases/VideoVault-v${VERSION}-macOS-notarized.dmg" ]]; then
-            SUFFIX='-notarized'
-          fi
-          echo "SUFFIX=$SUFFIX" >> "$GITHUB_ENV"
+          test -f "Releases/VideoVault-v${VERSION}-macOS-notarized.dmg" || { echo 'Public Mac releases must be signed and notarized.'; exit 1; }
+          echo 'SUFFIX=-notarized' >> "$GITHUB_ENV"
       - name: Verify published update without a private key
         run: |
           swift script/verify_release.swift VideoVault/Info.plist docs/appcast-v3.xml "Releases/VideoVault-v${VERSION}-macOS${SUFFIX}.dmg"
           hdiutil verify "Releases/VideoVault-v${VERSION}-macOS${SUFFIX}.dmg"
           (cd Releases && shasum -a 256 -c "SHA256SUMS-v${VERSION}${SUFFIX}.txt")
-          if [[ "$SUFFIX" == '-notarized' ]]; then
-            xcrun stapler validate "Releases/VideoVault-v${VERSION}-macOS${SUFFIX}.dmg"
-          fi
+          codesign --verify --strict "Releases/VideoVault-v${VERSION}-macOS${SUFFIX}.dmg"
+          xcrun stapler validate "Releases/VideoVault-v${VERSION}-macOS${SUFFIX}.dmg"
+          MOUNT="$RUNNER_TEMP/VideoVault-release-check"
+          mkdir -p "$MOUNT"
+          hdiutil attach -readonly -nobrowse -mountpoint "$MOUNT" "Releases/VideoVault-v${VERSION}-macOS${SUFFIX}.dmg"
+          trap 'hdiutil detach "$MOUNT"' EXIT
+          codesign --verify --deep --strict "$MOUNT/VideoVault.app"
+          xcrun stapler validate "$MOUNT/VideoVault.app"
+          spctl --assess --type execute --verbose=2 "$MOUNT/VideoVault.app"
       - name: Create downloadable GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -44,5 +47,18 @@ jobs:
           text = Path('RELEASE_NOTES.md').read_text().split('\n---\n', 1)[0]
           Path('release-body.md').write_text(text)
           PY
-          gh release create "v${VERSION}" --target "$GITHUB_SHA" --title "VideoVault v${VERSION}" --notes-file release-body.md \
-            "Releases/VideoVault-v${VERSION}-macOS${SUFFIX}.dmg" "Releases/VideoVault-v${VERSION}-macOS${SUFFIX}.zip" "Releases/SHA256SUMS-v${VERSION}${SUFFIX}.txt"
+          # GithubSource reads the latest release, including for Mac-only patches.
+          # Carry the current Windows feed and binaries intact, not a new Windows build.
+          WINDOWS="$RUNNER_TEMP/windows-assets"
+          mkdir -p "$WINDOWS"
+          gh release download --pattern '*win-*' --dir "$WINDOWS"
+          (cd "$WINDOWS" && shasum -a 256 -c SHA256SUMS-win-x64.txt && shasum -a 256 -c SHA256SUMS-win-arm64.txt)
+          for ARCH in x64 arm64; do
+            test -f "$WINDOWS/releases.win-${ARCH}.json"
+            test -f "$WINDOWS/assets.win-${ARCH}.json"
+          done
+          # Publish only after every platform's assets have finished uploading.
+          gh release create "v${VERSION}" --draft --target "$GITHUB_SHA" --title "VideoVault v${VERSION}" --notes-file release-body.md \
+            "Releases/VideoVault-v${VERSION}-macOS${SUFFIX}.dmg" "Releases/VideoVault-v${VERSION}-macOS${SUFFIX}.zip" "Releases/SHA256SUMS-v${VERSION}${SUFFIX}.txt" \
+            docs/appcast-v3.xml "Releases/VALIDATION-v${VERSION}.md" "Releases/NOTARIZATION-v${VERSION}.md" "$WINDOWS"/*
+          gh release edit "v${VERSION}" --draft=false --latest
