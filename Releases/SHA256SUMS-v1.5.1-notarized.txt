@@ -1,0 +1,2 @@
+6ca99ddcbca9422950908eac1ad72f40a88d1131e167cc3fd654df7d81b92e67  VideoVault-v1.5.1-macOS-notarized.dmg
+5fd801c38d1f9d83d32a9adf5d0963c0b34add3d7ea5d947ec3369bda84f78a4  VideoVault-v1.5.1-macOS-notarized.zip

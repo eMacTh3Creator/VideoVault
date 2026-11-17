@@ -6,6 +6,61 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <channel>
         <title>VideoVault</title>
         <item>
+            <title>1.5.1</title>
+            <pubDate>Tue, 17 Nov 2026 18:09:39 -0500</pubDate>
+            <link>https://emacth3creator.github.io/VideoVault/</link>
+            <sparkle:version>10</sparkle:version>
+            <sparkle:shortVersionString>1.5.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<h2>VideoVault 1.5.1 - Mac multi-selection</h2>
+<ul>
+<li>Command-A selects all shown downloads, respecting search and status filters. Command-click toggles individual items; Shift-click selects a range.</li>
+<li>Right-click a selected row for batch Retry, Force Retry, Cancel, Copy URLs, Show in Finder, and Remove. The detail panel shows batch controls and eligible-item counts.</li>
+<li>Selection stays attached to stable download IDs while progress and metadata change. Hidden and removed rows are excluded.</li>
+<li>Retry affects failed/cancelled items only; Cancel affects active/queued items only. Bulk queue changes are batched to keep processing responsive.</li>
+<li>Command-C copies URLs. Delete removes list entries; multiple removals require confirmation. Saved files are not deleted.</li>
+</ul>
+<p>All 39 Mac tests passed with no failures or skips, including six new multi-selection tests and a 2,000-item batch. The universal Intel/Apple Silicon app and DMG are Developer ID-signed and Apple-notarized with stapled tickets. Interactive UI testing remains outstanding because the running app was not opened or restarted.</p>
+<p>Mac v1.5 users receive this update through the existing signed update channel. Users on v1.4 or earlier need one manual installation of v1.5.1. Windows remains at v1.5.0; its existing unsigned installers and updater assets are retained unchanged. This release adds multi-selection to Mac only.</p>
+
+<h2>Earlier: VideoVault 1.5</h2>
+<ul>
+<li>Automatically use Force Retry after recoverable postprocessing failures, including FFmpeg's "Error opening output files: Invalid argument" diagnostic.</li>
+<li>Choose 1-10 automatic Force Retry attempts in Settings; the default is 3 extra attempts per download.</li>
+<li>Forced attempts skip optional thumbnail and metadata work while keeping the chosen quality, duplicate protection, and access restrictions.</li>
+<li>Retries use short, increasing delays, stop at the configured limit, and can be cancelled during the delay. Turning automatic retries off disables them.</li>
+<li>Try yt-dlp recovery before unsupported Streamlink fallbacks for postprocessing errors. Clarify that a missing Streamlink plugin is a backup limitation, not a verdict on the source.</li>
+<li>Matching recovery options are included in Windows x64 and ARM64 builds.</li>
+</ul>
+<p><strong>One manual Mac installation is required:</strong> The previous publisher key could not be recovered. Install 1.5 manually once to use the new signed update channel. Older feeds are preserved; private publisher keys are never included in the app.</p>
+<p>The universal Mac app and disk image are Developer ID-signed and Apple-notarized, with stapled tickets. Gatekeeper and ticket validation passed, including the app extracted from the ZIP and the app inside the disk image. Use the new -notarized downloads; the original downloads are retained for cached update feeds. Windows builds remain unsigned previews.</p>
+
+<h2>Earlier: VideoVault 1.4</h2>
+<ul>
+<li>New drag-to-Applications installer for Intel and Apple Silicon.</li>
+<li>Automatic signed update checks start on first launch. No scripts, signing keys, or Terminal setup are needed by users.</li>
+<li>Intel setup uses the built-in yt-dlp and ffmpeg installers; Homebrew remains optional on Apple Silicon.</li>
+<li>Installation failures display their error beside the relevant button.</li>
+</ul>
+<p>Open the disk image, drag VideoVault to Applications, then launch it from Applications. Versions 1.3.x require this one manual installation to join the new update channel.</p>
+<p>The app is ad-hoc signed and is not Apple-notarized; macOS may require approval in Privacy &amp; Security for first launch.</p>
+
+<h2>Windows 1.4.0 development preview</h2>
+<ul>
+<li>Native C# / .NET 10 / WPF application, with self-contained x64 and ARM64 installers and portable ZIPs alongside the Mac release.</li>
+<li>Independent download processes, bounded metadata timeouts, responsive progress updates, and persistent queues.</li>
+<li>Verified first-run yt-dlp, FFmpeg, Deno, and Streamlink setup; automatic yt-dlp checks on launch.</li>
+<li>Destination duplicate protection, content-based duplicate finder, and safe Recycle Bin handling.</li>
+<li>Home navigation and system-tray active/queued/failed counts, quick-paste best video/audio, and queue controls.</li>
+<li>Corrected Settings labels and buttons, wrapping options, small-screen scrolling, and saved-quality selection.</li>
+<li>Force Retry and supported independent recovery paths preserve DRM, login, and access restrictions.</li>
+</ul>
+<p><strong>Unsigned development builds:</strong> Windows SmartScreen may show a warning. Windows 11 ARM64 regression and local-media integration tests passed 42 checks. Native x64 hardware and installed old-to-new app-update validation remain pending. Portable copies do not install app updates.</p>
+<p><a href="index.html#downloads">Choose a download</a> or <a href="https://github.com/eMacTh3Creator/VideoVault/releases/tag/v1.4">open the combined GitHub release</a>.</p>
+]]></description>
+            <enclosure url="https://raw.githubusercontent.com/eMacTh3Creator/VideoVault/main/Releases/VideoVault-v1.5.1-macOS-notarized.dmg" length="4674830" type="application/octet-stream" sparkle:edSignature="VMTgIf4hhKu5Sgy5Ccc41ryfM7umxY8EbDJyZTVk7jCuIywjeXOZrNi4uvB4z9fCMZrPQr6rw380tKqKHzoJDA=="/>
+        </item>
+        <item>
             <title>1.5</title>
             <pubDate>Fri, 13 Nov 2026 17:33:59 -0500</pubDate>
             <link>https://emacth3creator.github.io/VideoVault/</link>
@@ -52,6 +107,6 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     </channel>
 </rss>
 <!-- sparkle-signatures:
-edSignature: tuIfb9i+oTUk+kf6BlYf0nGDgP3sC0ibFeGArSp9haP7sMcoUUPmn3XgHgXmXUv9iM59VerolrAHR2vyImEVCA==
-length: 4586
+edSignature: P6E8Oa5sq6Wp6UL7pEy0CGq4NRQoKyTFVkRqS6Z7riJy4S2au5oedx2bXGqeg4uC/GfvRCu/1IrPONwxTVsgDw==
+length: 10395
 -->

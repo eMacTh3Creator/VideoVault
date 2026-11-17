@@ -27,6 +27,8 @@ hdiutil attach -readonly -nobrowse -mountpoint "$MOUNT" "$OUTPUT/VideoVault-v${V
 codesign --verify --deep --strict "$MOUNT/VideoVault.app"
 ditto --norsrc --noextattr "$MOUNT/VideoVault.app" Releases/VideoVault.app
 xattr -cr Releases/VideoVault.app
+# Cloud-backed folders can restore FinderInfo during a recursive attribute clear.
+xattr -dr com.apple.FinderInfo Releases/VideoVault.app
 codesign --verify --deep --strict Releases/VideoVault.app
 xcrun stapler validate Releases/VideoVault.app
 hdiutil detach "$MOUNT"
